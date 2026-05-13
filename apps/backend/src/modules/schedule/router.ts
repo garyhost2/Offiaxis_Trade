@@ -77,7 +77,7 @@ const router: FastifyPluginAsyncZod = async (fastify) => {
     },
   }, async (request, reply) => {
     await deleteScheduleEventService(request.params.id, request.user.orgId);
-    return reply.status(204).send();
+    return reply.status(204).send(null);
   });
 };
 

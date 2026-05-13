@@ -53,7 +53,7 @@ async function buildApp() {
   fastify.addHook('onRequest', verifyFirebaseToken);
   fastify.addHook('onRequest', attachRole);
 
-  fastify.setErrorHandler((error, request, reply) => {
+  fastify.setErrorHandler((error: unknown, request, reply) => {
     if (isAppError(error)) {
       log.warn(error.message, {
         requestId: request.id,
@@ -67,11 +67,13 @@ async function buildApp() {
       });
     }
 
-    if (error.validation) {
+    // Fastify validation errors have a `.validation` property
+    const fastifyError = error as { validation?: unknown; message?: string; stack?: string };
+    if (fastifyError.validation) {
       return reply.status(422).send({
         error: 'Validation failed',
         code: 'VALIDATION_ERROR',
-        details: error.validation,
+        details: fastifyError.validation,
       });
     }
 
@@ -79,8 +81,8 @@ async function buildApp() {
       requestId: request.id,
       userId: request.user?.uid,
       orgId: request.user?.orgId,
-      error: error.message,
-      stack: error.stack,
+      error: fastifyError.message ?? String(error),
+      stack: fastifyError.stack,
     });
 
     if (config.SENTRY_DSN) {
