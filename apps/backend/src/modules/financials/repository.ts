@@ -76,7 +76,7 @@ export async function listExpenses(params: {
 }): Promise<IExpenseDocument[]> {
   const query: Record<string, unknown> = { orgId: params.orgId };
   if (params.projectId) query['projectId'] = params.projectId;
-  if (params.startDate ?? params.endDate) {
+  if (params.startDate || params.endDate) {
     const dateFilter: Record<string, Date> = {};
     if (params.startDate) dateFilter['$gte'] = params.startDate;
     if (params.endDate) dateFilter['$lte'] = params.endDate;
@@ -112,7 +112,7 @@ export async function aggregateExpenses(params: {
   const match: Record<string, unknown> = { orgId: params.orgId };
   if (params.projectId) match['projectId'] = params.projectId;
   if (params.jobType) match['jobType'] = params.jobType;
-  if (params.startDate ?? params.endDate) {
+  if (params.startDate || params.endDate) {
     const dateFilter: Record<string, Date> = {};
     if (params.startDate) dateFilter['$gte'] = params.startDate;
     if (params.endDate) dateFilter['$lte'] = params.endDate;
@@ -133,7 +133,7 @@ export async function aggregateIncome(params: {
 }): Promise<number> {
   const match: Record<string, unknown> = { orgId: params.orgId };
   if (params.projectId) match['projectId'] = params.projectId;
-  if (params.startDate ?? params.endDate) {
+  if (params.startDate || params.endDate) {
     const dateFilter: Record<string, Date> = {};
     if (params.startDate) dateFilter['$gte'] = params.startDate;
     if (params.endDate) dateFilter['$lte'] = params.endDate;

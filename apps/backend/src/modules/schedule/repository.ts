@@ -61,7 +61,7 @@ export async function listScheduleEvents(params: {
 }): Promise<IScheduleEventDocument[]> {
   const query: Record<string, unknown> = { orgId: params.orgId };
   if (params.projectId) query['projectId'] = params.projectId;
-  if (params.startDate ?? params.endDate) {
+  if (params.startDate || params.endDate) {
     const dateFilter: Record<string, Date> = {};
     if (params.startDate) dateFilter['$gte'] = params.startDate;
     if (params.endDate) dateFilter['$lte'] = params.endDate;
