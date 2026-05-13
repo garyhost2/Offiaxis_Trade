@@ -11,13 +11,24 @@ declare module 'fastify' {
       orgId: string;
     };
   }
+  interface FastifyContextConfig {
+    skipAuth?: boolean;
+  }
 }
+
+const PUBLIC_PATHS = new Set(['/health', '/api/auth/sign-in', '/api/auth/sign-up']);
 
 export async function verifyFirebaseToken(
   request: FastifyRequest,
   reply: FastifyReply
 ): Promise<void> {
-  if (request.url === '/health') {
+  // Skip public routes
+  if (PUBLIC_PATHS.has(request.url.split('?')[0])) {
+    return;
+  }
+
+  // Skip routes that explicitly set skipAuth in config
+  if (request.routeOptions?.config?.skipAuth === true) {
     return;
   }
 

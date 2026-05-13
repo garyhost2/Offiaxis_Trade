@@ -10,11 +10,19 @@ declare module 'fastify' {
   }
 }
 
+const PUBLIC_PATHS = new Set(['/health', '/api/auth/sign-in', '/api/auth/sign-up']);
+
 export async function attachRole(
   request: FastifyRequest,
   reply: FastifyReply
 ): Promise<void> {
-  if (request.url === '/health') {
+  // Skip public routes
+  if (PUBLIC_PATHS.has(request.url.split('?')[0])) {
+    return;
+  }
+
+  // Skip if skipAuth config is set
+  if (request.routeOptions?.config?.skipAuth === true) {
     return;
   }
 

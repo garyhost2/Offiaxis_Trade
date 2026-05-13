@@ -34,5 +34,30 @@ export const UserResponseSchema = z.object({
   updatedAt: z.date(),
 });
 
+export const SignUpSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(6),
+  displayName: z.string().min(1).max(100),
+  role: UserRoleSchema.optional().default('viewer'),
+  orgId: z.string().optional(),
+});
+
+export const SignInSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(1),
+});
+
+export const SignInResponseSchema = z.object({
+  uid: z.string(),
+  email: z.string(),
+  displayName: z.string(),
+  token: z.string(),
+  tokenExpiry: z.number(),
+  orgId: z.string().nullable(),
+  role: UserRoleSchema.nullable(),
+});
+
 export type RegisterUserInput = z.infer<typeof RegisterUserSchema>;
 export type UpdateRoleInput = z.infer<typeof UpdateRoleSchema>;
+export type SignUpInput = z.infer<typeof SignUpSchema>;
+export type SignInInput = z.infer<typeof SignInSchema>;
