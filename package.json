@@ -1,0 +1,13 @@
+{
+  "name": "offiaxis-trade",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": ["packages/*", "apps/*"],
+  "scripts": {
+    "dev:backend": "yarn workspace @offiaxis/backend dev",
+    "build:backend": "yarn workspace @offiaxis/backend build",
+    "typecheck": "yarn workspaces run typecheck",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down"
+  }
+}
