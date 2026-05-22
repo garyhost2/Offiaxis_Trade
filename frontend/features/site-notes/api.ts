@@ -1,19 +1,17 @@
 import { baseApi } from '../../shared/store/baseApi';
 
 interface SiteNotesRequest {
-  voiceText?: string;
-  photoBase64?: string;
+  images: string[];
+  voiceNotes: string[];
   projectId?: string;
-  location?: string;
+  projectContext?: string;
 }
 
 interface SiteNotesResponse {
   success: boolean;
-  processedNotes?: string;
-  punchList?: Array<{ task: string; priority: string; assignTo: string }>;
-  materials?: Array<{ item: string; quantity: string; urgency: string }>;
-  safetyIssues?: string[];
-  followUpItems?: string[];
+  punchList?: Array<{ id: string; description: string; location?: string | null; priority: 'High' | 'Medium' | 'Low'; status: string }>;
+  checklist?: Array<{ id: string; task: string; category: string; checked: boolean }>;
+  materialList?: Array<{ id: string; name: string; quantity: string; category: string; notes?: string | null }>;
   error?: string;
 }
 

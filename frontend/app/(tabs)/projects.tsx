@@ -4,7 +4,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Calendar } from 'react-native-calendars';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { getAllProjects, addProject, updateProject, formatDateWithoutTimezone } from '../../utils/projectsData';
+import { getAllProjects, addProject, updateProject, formatDateWithoutTimezone, type Project } from '../../utils/projectsData';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Sample hardcoded project data with full contact details
 const SAMPLE_PROJECTS = [
@@ -112,33 +113,34 @@ const INITIAL_COMPANIES_DATA = [
 ];
 
 export default function ProjectsScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const [viewMode, setViewMode] = useState('all'); // 'all' or 'company'
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const [searchQuery, setSearchQuery] = useState('');
   const [showIndex, setShowIndex] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(null);
+  const [activeIndex, setActiveIndex] = useState<string | null>(null);
   const [magnifierPos, setMagnifierPos] = useState(0);
-  const [openContactDropdown, setOpenContactDropdown] = useState(null);
+  const [openContactDropdown, setOpenContactDropdown] = useState<number | null>(null);
   const [showContactModal, setShowContactModal] = useState(false);
-  const [selectedContact, setSelectedContact] = useState(null);
-  const [currentProjectId, setCurrentProjectId] = useState(null);
+  const [selectedContact, setSelectedContact] = useState<any>(null);
+  const [currentProjectId, setCurrentProjectId] = useState<number | null>(null);
   const [isEditingContact, setIsEditingContact] = useState(false);
   const [isAddingNote, setIsAddingNote] = useState(false);
   const [noteText, setNoteText] = useState('');
-  const [editedContactData, setEditedContactData] = useState({});
+  const [editedContactData, setEditedContactData] = useState<any>({});
   const [showDeleteWarning, setShowDeleteWarning] = useState(false);
   const [isAddingNewContact, setIsAddingNewContact] = useState(false);
-  const [projects, setProjects] = useState([]);
-  const [companies, setCompanies] = useState(INITIAL_COMPANIES_DATA);
-  const [expandedCompanies, setExpandedCompanies] = useState({});
-  const [openCompanyInfoDropdown, setOpenCompanyInfoDropdown] = useState(null);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [companies, setCompanies] = useState<any[]>(INITIAL_COMPANIES_DATA);
+  const [expandedCompanies, setExpandedCompanies] = useState<Record<number, boolean>>({});
+  const [openCompanyInfoDropdown, setOpenCompanyInfoDropdown] = useState<number | null>(null);
   const [showEditCompanyModal, setShowEditCompanyModal] = useState(false);
-  const [editingCompany, setEditingCompany] = useState(null);
-  const [editedCompanyData, setEditedCompanyData] = useState({});
+  const [editingCompany, setEditingCompany] = useState<any>(null);
+  const [editedCompanyData, setEditedCompanyData] = useState<any>({});
   const [showDeleteCompanyWarning, setShowDeleteCompanyWarning] = useState(false);
   const [showCompanyInfoModal, setShowCompanyInfoModal] = useState(false);
-  const [selectedCompanyInfo, setSelectedCompanyInfo] = useState(null);
+  const [selectedCompanyInfo, setSelectedCompanyInfo] = useState<any>(null);
 
   // Load projects from shared store on mount and when screen comes into focus
   useEffect(() => {
@@ -153,16 +155,16 @@ export default function ProjectsScreen() {
   );
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState('All');
-  const [openStatusDropdown, setOpenStatusDropdown] = useState(null);
+  const [openStatusDropdown, setOpenStatusDropdown] = useState<number | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showStatusPicker, setShowStatusPicker] = useState(false);
   const [showCalendar, setShowCalendar] = useState(false);
-  const [activeCalendarField, setActiveCalendarField] = useState(null);
-  const [tempSelectedDate, setTempSelectedDate] = useState(null);
+  const [activeCalendarField, setActiveCalendarField] = useState<string | null>(null);
+  const [tempSelectedDate, setTempSelectedDate] = useState<string | null>(null);
   const [showEditStatusModal, setShowEditStatusModal] = useState(false);
-  const [editingProject, setEditingProject] = useState(null);
-  const [editStatusData, setEditStatusData] = useState({});
-  const [dropdownPosition, setDropdownPosition] = useState(null);
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [editStatusData, setEditStatusData] = useState<any>({});
+  const [dropdownPosition, setDropdownPosition] = useState<any>(null);
   const [showEmployeeDropdown, setShowEmployeeDropdown] = useState(false);
   
   const employeeOptions = [
@@ -181,7 +183,7 @@ export default function ProjectsScreen() {
     '1 day before'
   ];
   const positionMeasured = useRef(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<Record<string, string>>({
     name: '',
     company: '',
     phone: '',
@@ -200,27 +202,27 @@ export default function ProjectsScreen() {
     warrantyStart: new Date().toISOString().split('T')[0],
     warrantyEnd: ''
   });
-  const [formErrors, setFormErrors] = useState({});
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [showCompanyDropdown, setShowCompanyDropdown] = useState(false);
   
-  const scrollRef = useRef(null);
-  const modalScrollRef = useRef(null);
-  const hideTimeoutRef = useRef(null);
-  const sectionRefs = useRef({});
-  const letterRefs = useRef({});
+  const scrollRef = useRef<any>(null);
+  const modalScrollRef = useRef<any>(null);
+  const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sectionRefs = useRef<Record<string, number>>({});
+  const letterRefs = useRef<Record<string, number>>({});
 
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 
   const statusOptions = ['To be scheduled', 'Rough-In', 'Inspection', 'Final Trim', 'Completed', 'Service Call'];
 
   // Date utility functions
-  const formatDate = (date) => {
+  const formatDate = (date: string | Date) => {
     if (!date) return '';
     const d = new Date(date);
     return d.toISOString().split('T')[0];
   };
 
-  const getNextBusinessDay = (date) => {
+  const getNextBusinessDay = (date: string | Date) => {
     const nextDay = new Date(date);
     nextDay.setDate(nextDay.getDate() + 1);
     // If Saturday, add 2 days; if Sunday, add 1 day
@@ -229,7 +231,7 @@ export default function ProjectsScreen() {
     return formatDate(nextDay);
   };
 
-  const formatDisplayDate = (dateString) => {
+  const formatDisplayDate = (dateString: string) => {
     if (!dateString) return 'Select date';
     // Parse date string as local date to avoid timezone issues
     const [year, month, day] = dateString.split('-').map(Number);
@@ -238,7 +240,7 @@ export default function ProjectsScreen() {
   };
 
   // Format phone number as (XXX) XXX-XXXX
-  const formatPhoneNumber = (text) => {
+  const formatPhoneNumber = (text: string) => {
     // Remove all non-numeric characters
     const cleaned = text.replace(/\D/g, '');
     
@@ -277,7 +279,7 @@ export default function ProjectsScreen() {
   });
 
   // Group filtered projects by first letter (for "All Projects" view)
-  const groupedProjects = filteredProjects.reduce((acc, project) => {
+  const groupedProjects = filteredProjects.reduce<Record<string, Project[]>>((acc, project) => {
     const firstLetter = project.name.charAt(0).toUpperCase();
     if (!acc[firstLetter]) {
       acc[firstLetter] = [];
@@ -318,7 +320,7 @@ export default function ProjectsScreen() {
   const filteredCompanies = getFilteredCompanies();
 
   // Group companies by first letter
-  const groupedCompanies = filteredCompanies.reduce((acc, company) => {
+  const groupedCompanies = filteredCompanies.reduce<Record<string, any[]>>((acc, company) => {
     const firstLetter = company.name.charAt(0).toUpperCase();
     if (!acc[firstLetter]) {
       acc[firstLetter] = [];
@@ -333,7 +335,7 @@ export default function ProjectsScreen() {
   const currentAvailableLetters = viewMode === 'all' ? availableLetters : availableCompanyLetters;
 
   // Toggle company expansion
-  const toggleCompany = (companyId) => {
+  const toggleCompany = (companyId: number) => {
     setExpandedCompanies(prev => ({
       ...prev,
       [companyId]: !prev[companyId]
@@ -341,7 +343,7 @@ export default function ProjectsScreen() {
   };
 
   // Switch view mode with animation
-  const switchViewMode = (newMode) => {
+  const switchViewMode = (newMode: string) => {
     if (newMode === viewMode) return;
     
     Animated.timing(fadeAnim, {
@@ -359,7 +361,7 @@ export default function ProjectsScreen() {
   };
 
   // Company edit handlers
-  const handleEditCompany = (company) => {
+  const handleEditCompany = (company: any) => {
     setEditingCompany(company);
     setEditedCompanyData({
       name: company.name,
@@ -420,7 +422,7 @@ export default function ProjectsScreen() {
   };
 
   // Scroll to letter
-  const scrollToLetter = (letter) => {
+  const scrollToLetter = (letter: string) => {
     const yOffset = sectionRefs.current[letter];
     if (yOffset !== undefined && scrollRef.current) {
       scrollRef.current.scrollTo({ y: yOffset, animated: true });
@@ -428,7 +430,7 @@ export default function ProjectsScreen() {
   };
 
   // Touch handler for index letters
-  const handleIndexTouch = (letter) => {
+  const handleIndexTouch = (letter: string) => {
     if (!currentAvailableLetters.includes(letter)) return;
     
     setActiveIndex(letter);
@@ -447,7 +449,7 @@ export default function ProjectsScreen() {
     }, 1200);
   };
 
-  const getStatusStyle = (status) => {
+  const getStatusStyle = (status: string) => {
     switch (status) {
       case 'To be scheduled':
         return { backgroundColor: '#FEF3C7', borderColor: '#FDE047', color: '#92400E' };
@@ -467,7 +469,7 @@ export default function ProjectsScreen() {
   };
 
   // Contact handlers
-  const handleContactClick = (contact, projectId) => {
+  const handleContactClick = (contact: any, projectId: number) => {
     setSelectedContact(contact);
     setCurrentProjectId(projectId);
     setEditedContactData(contact);
@@ -476,7 +478,7 @@ export default function ProjectsScreen() {
     setOpenContactDropdown(null);
   };
 
-  const handleAddNewContact = (projectId) => {
+  const handleAddNewContact = (projectId: number) => {
     const newContact = {
       id: `${projectId}-c${Date.now()}`,
       name: '',
@@ -495,12 +497,13 @@ export default function ProjectsScreen() {
 
   const handleSaveContact = () => {
     const currentProject = projects.find(p => p.id === currentProjectId);
+    if (!currentProject || currentProjectId === null) return;
     
     let updatedContacts;
     if (isAddingNewContact) {
       updatedContacts = [...(currentProject.otherContacts || []), editedContactData];
     } else {
-      updatedContacts = (currentProject.otherContacts || []).map(c => 
+      updatedContacts = (currentProject.otherContacts || []).map((c: any) => 
         c.id === selectedContact.id ? editedContactData : c
       );
     }
@@ -520,8 +523,9 @@ export default function ProjectsScreen() {
 
   const confirmDeleteContact = () => {
     const currentProject = projects.find(p => p.id === currentProjectId);
+    if (!currentProject || currentProjectId === null) return;
     const updatedContacts = (currentProject.otherContacts || []).filter(
-      c => c.id !== selectedContact.id
+      (c: any) => c.id !== selectedContact.id
     );
     
     // Update shared store
@@ -538,7 +542,7 @@ export default function ProjectsScreen() {
       if (proj.id === currentProjectId) {
         return {
           ...proj,
-          otherContacts: (proj.otherContacts || []).filter(c => c.id !== selectedContact.id)
+          otherContacts: (proj.otherContacts || []).filter((c: any) => c.id !== selectedContact.id)
         };
       }
       return proj;
@@ -555,7 +559,7 @@ export default function ProjectsScreen() {
       if (proj.id === currentProjectId) {
         return {
           ...proj,
-          otherContacts: (proj.otherContacts || []).map(c => 
+          otherContacts: (proj.otherContacts || []).map((c: any) => 
             c.id === selectedContact.id ? updatedContact : c
           )
         };
@@ -569,12 +573,12 @@ export default function ProjectsScreen() {
 
   // Add Project Modal handlers
   const validateForm = () => {
-    const errors = {};
+    const errors: Record<string, string> = {};
     if (!formData.name.trim()) errors.name = 'Name is required';
     return errors;
   };
 
-  const handleAddProject = (action) => {
+  const handleAddProject = (action: string) => {
     const errors = validateForm();
     setFormErrors(errors);
     
@@ -586,7 +590,7 @@ export default function ProjectsScreen() {
     const selectedCompany = companies.find(c => c.name === formData.company);
     
     // Create new project with local state including date fields
-    const newProject = {
+    const newProject: Project = {
       id: projects.length + 1,
       name: formData.name.trim(),
       company: formData.company || '',
@@ -679,11 +683,11 @@ export default function ProjectsScreen() {
     setShowCompanyDropdown(false);
   };
 
-  const handleStatusChange = (newStatus) => {
+  const handleStatusChange = (newStatus: string) => {
     const today = formatDate(new Date());
     const nextBusiness = getNextBusinessDay(new Date());
     
-    const updatedData = {
+    const updatedData: Record<string, string> = {
       ...formData,
       status: newStatus
     };
@@ -711,7 +715,7 @@ export default function ProjectsScreen() {
     }, 200);
   };
 
-  const openCalendar = (fieldName) => {
+  const openCalendar = (fieldName: string) => {
     setActiveCalendarField(fieldName);
     // Initialize tempSelectedDate with current field value or today
     // Check if we're editing status or adding new project
@@ -720,7 +724,7 @@ export default function ProjectsScreen() {
     setShowCalendar(true);
   };
 
-  const handleDateSelect = (date) => {
+  const handleDateSelect = (date: { dateString: string }) => {
     if (activeCalendarField) {
       // Use formatDateWithoutTimezone to prevent timezone issues
       const formattedDate = formatDateWithoutTimezone(date.dateString);
@@ -753,23 +757,24 @@ export default function ProjectsScreen() {
   };
 
   // Quick date selection helpers
-  const addMonthsToDate = (date, months) => {
+  const addMonthsToDate = (date: string | Date, months: number) => {
     const result = new Date(date);
     result.setMonth(result.getMonth() + months);
     return formatDate(result);
   };
 
-  const handleQuickDateSelect = (months) => {
+  const handleQuickDateSelect = (months: number) => {
     // Get the base date - use tempSelectedDate if user clicked a date, otherwise use current field value or today
     const currentData = showEditStatusModal ? editStatusData : formData;
-    const baseDate = tempSelectedDate || currentData[activeCalendarField] || formatDate(new Date());
+    const activeDateField = activeCalendarField ?? 'warrantyStart';
+    const baseDate = tempSelectedDate || currentData[activeDateField] || formatDate(new Date());
     
     // Calculate end date by adding months to base date
     const endDate = addMonthsToDate(new Date(baseDate), months);
     
     // Update the appropriate data (editStatusData or formData) with both dates
     if (showEditStatusModal) {
-      setEditStatusData(prevData => ({
+      setEditStatusData((prevData: any) => ({
         ...prevData,
         warrantyStart: baseDate,
         warrantyEnd: endDate
@@ -834,7 +839,7 @@ export default function ProjectsScreen() {
               {editStatusData.newStatus === 'To be scheduled' && (
                 <View style={styles.dateFieldsContainer}>
                   <Text style={styles.addModalFieldLabel}>
-                    This project will be marked as "To be scheduled" with no specific dates assigned.
+                    {'This project will be marked as "To be scheduled" with no specific dates assigned.'}
                   </Text>
                 </View>
               )}
@@ -1032,7 +1037,7 @@ export default function ProjectsScreen() {
                           
                           if (isSelected) {
                             // Remove alert if already selected
-                            newAlerts = currentAlerts.filter(a => a !== alert);
+                            newAlerts = currentAlerts.filter((a: any) => a !== alert);
                           } else {
                             // Add alert if not selected
                             newAlerts = [...currentAlerts, alert];
@@ -1096,6 +1101,7 @@ export default function ProjectsScreen() {
                       alerts: editStatusData.alerts || [],
                       notes: editStatusData.notes || ''
                     };
+                    if (!editingProject) return;
                     updateProject(editingProject.id, updateData);
                     setProjects(getAllProjects());
                     
@@ -1130,7 +1136,7 @@ export default function ProjectsScreen() {
         colors={['#4F46E5', '#3B82F6']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
-        style={styles.header}
+        style={[styles.header, { paddingTop: insets.top + 12 }]}
       >
         <View style={styles.headerContent}>
           <View style={styles.spacer} />
@@ -1290,7 +1296,7 @@ export default function ProjectsScreen() {
             }}
           >
             <Text style={styles.letterHeader}>{letter}</Text>
-            {groupedProjects[letter].map((project) => (
+            {groupedProjects[letter].map((project: Project) => (
               <View key={project.id} style={styles.projectCard}>
                 {/* Avatar & Info */}
                 <View style={styles.projectHeader}>
@@ -1423,7 +1429,7 @@ export default function ProjectsScreen() {
 
                   {openContactDropdown === project.id && (
                     <View style={styles.contactDropdownMenu}>
-                      {(project.otherContacts || []).map(contact => (
+                      {(project.otherContacts || []).map((contact: any) => (
                         <TouchableOpacity
                           key={contact.id}
                           style={styles.contactDropdownItem}
@@ -1484,7 +1490,7 @@ export default function ProjectsScreen() {
                   }}
                 >
                   <Text style={styles.letterHeader}>{letter}</Text>
-                  {groupedCompanies[letter].map((company) => (
+                  {groupedCompanies[letter].map((company: any) => (
                     <View key={company.id} style={styles.companyCard}>
                       {/* Company Header */}
                       <View style={styles.companyHeaderContainer}>
@@ -1564,7 +1570,7 @@ export default function ProjectsScreen() {
                             >
                               <Ionicons name="call-outline" size={20} color="#4F46E5" style={styles.companyInfoIcon} />
                               <View style={styles.companyInfoTextContainer}>
-                                <Text style={styles.companyInfoLabel}>CONTACT'S PHONE NUMBER</Text>
+                                <Text style={styles.companyInfoLabel}>{"CONTACT'S PHONE NUMBER"}</Text>
                                 <Text style={styles.companyInfoValue}>{company.phone}</Text>
                               </View>
                             </TouchableOpacity>
@@ -1601,7 +1607,7 @@ export default function ProjectsScreen() {
                       {/* Expanded Projects List */}
                       {expandedCompanies[company.id] && (
                         <View style={styles.projectsList}>
-                          {company.projects.map((project) => (
+                          {company.projects.map((project: any) => (
                             <View key={project.id} style={styles.projectCardInCompany}>
                               {/* Avatar & Info */}
                               <View style={styles.projectHeader}>
@@ -1723,7 +1729,7 @@ export default function ProjectsScreen() {
 
                                 {openContactDropdown === project.id && (
                                   <View style={styles.contactDropdownMenu}>
-                                    {(project.otherContacts || []).map(contact => (
+                                    {(project.otherContacts || []).map((contact: any) => (
                                       <TouchableOpacity
                                         key={contact.id}
                                         style={styles.contactDropdownItem}
@@ -3518,7 +3524,6 @@ const styles = StyleSheet.create({
     elevation: 9999,
     zIndex: 999999,
     paddingVertical: 4,
-    transform: [{ translateZ: 1000 }],
   },
   statusDropdownItem: {
     flexDirection: 'row',
@@ -3882,9 +3887,6 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 8,
     overflow: 'hidden',
-  },
-  saveButton: {
-    flex: 1,
   },
   saveButtonGradient: {
     paddingVertical: 8,
@@ -4672,28 +4674,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#4F46E5',
   },
-  companyInfoRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-  },
   companyInfoIcon: {
     marginTop: 2,
   },
   companyInfoTextContainer: {
     flex: 1,
-  },
-  companyInfoLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#64748B',
-    letterSpacing: 0.5,
-    marginBottom: 4,
-  },
-  companyInfoValue: {
-    fontSize: 14,
-    color: '#1F2937',
-    fontWeight: '500',
   },
   // Edit Company Modal Styles
   editCompanyModalOverlay: {
@@ -5094,4 +5079,4 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#FFFFFF',
   },
-});
+}) as any;

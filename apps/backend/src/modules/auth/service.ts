@@ -1,4 +1,4 @@
-import { RegisterUserInput, UpdateRoleInput, SignUpInput, SignInInput } from './schema';
+import { RegisterUserInput, UpdateRoleInput, SignUpInput, SignInInput, GoogleSignInInput } from './schema';
 import {
   findUserByUid,
   upsertUser,
@@ -82,6 +82,38 @@ export interface SignInResult {
   role: UserRole | null;
 }
 
+interface FirebasePasswordSignInResult {
+  localId: string;
+  idToken: string;
+  expiresIn: string;
+  displayName?: string;
+}
+
+async function signInWithFirebasePassword(email: string, password: string): Promise<FirebasePasswordSignInResult> {
+  const restUrl = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${config.FIREBASE_WEB_API_KEY}`;
+
+  const response = await fetch(restUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      email,
+      password,
+      returnSecureToken: true,
+    }),
+  });
+
+  if (!response.ok) {
+    const body = await response.json() as { error?: { message?: string } };
+    const msg = body.error?.message ?? 'Invalid credentials';
+    const userMsg = (msg === 'EMAIL_NOT_FOUND' || msg === 'INVALID_PASSWORD' || msg === 'INVALID_LOGIN_CREDENTIALS')
+      ? 'Invalid email or password'
+      : msg;
+    throw new AppError(userMsg, 401, 'INVALID_CREDENTIALS');
+  }
+
+  return response.json() as Promise<FirebasePasswordSignInResult>;
+}
+
 export async function signUpUser(input: SignUpInput): Promise<SignInResult> {
   // Create user in Firebase
   const firebaseUser = await firebaseAuth.createUser({
@@ -101,15 +133,14 @@ export async function signUpUser(input: SignUpInput): Promise<SignInResult> {
     orgId,
   });
 
-  // Create custom token
-  const customToken = await firebaseAuth.createCustomToken(firebaseUser.uid);
-  const tokenExpiry = Date.now() + 60 * 60 * 1000; // 1 hour
+  const tokenData = await signInWithFirebasePassword(input.email, input.password);
+  const tokenExpiry = Date.now() + parseInt(tokenData.expiresIn, 10) * 1000;
 
   return {
     uid: firebaseUser.uid,
     email: input.email,
     displayName: input.displayName,
-    token: customToken,
+    token: tokenData.idToken,
     tokenExpiry,
     orgId,
     role: input.role ?? 'viewer',
@@ -117,46 +148,87 @@ export async function signUpUser(input: SignUpInput): Promise<SignInResult> {
 }
 
 export async function signInUser(input: SignInInput): Promise<SignInResult> {
-  // Use Firebase REST API to verify email/password
-  const apiKey = config.FIREBASE_WEB_API_KEY;
-  const restUrl = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${apiKey}`;
+  const data = await signInWithFirebasePassword(input.email, input.password);
+  const uid = data.localId;
+
+  // Fetch MongoDB profile for role/orgId
+  const doc = await findUserByUid(uid);
+
+  const tokenExpiry = Date.now() + parseInt(data.expiresIn, 10) * 1000;
+
+  return {
+    uid,
+    email: input.email,
+    displayName: doc?.displayName ?? data.displayName ?? input.email,
+    token: data.idToken,
+    tokenExpiry,
+    orgId: doc?.orgId ?? null,
+    role: doc?.role ?? null,
+  };
+}
+
+interface FirebaseIdpSignInResult {
+  localId: string;
+  idToken: string;
+  expiresIn: string;
+  email: string;
+  displayName?: string;
+}
+
+async function signInWithGoogleIdp(input: GoogleSignInInput): Promise<FirebaseIdpSignInResult> {
+  const postBody = input.idToken
+    ? `id_token=${encodeURIComponent(input.idToken)}&providerId=google.com`
+    : `access_token=${encodeURIComponent(input.accessToken!)}&providerId=google.com`;
+
+  const restUrl = `https://identitytoolkit.googleapis.com/v1/accounts:signInWithIdp?key=${config.FIREBASE_WEB_API_KEY}`;
 
   const response = await fetch(restUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      email: input.email,
-      password: input.password,
+      postBody,
+      requestUri: 'http://localhost',
+      returnIdpCredential: true,
       returnSecureToken: true,
     }),
   });
 
   if (!response.ok) {
     const body = await response.json() as { error?: { message?: string } };
-    const msg = body.error?.message ?? 'Invalid credentials';
-    const userMsg = (msg === 'EMAIL_NOT_FOUND' || msg === 'INVALID_PASSWORD' || msg === 'INVALID_LOGIN_CREDENTIALS')
-      ? 'Invalid email or password'
-      : msg;
-    throw new AppError(userMsg, 401, 'INVALID_CREDENTIALS');
+    const msg = body.error?.message ?? 'Google sign-in failed';
+    throw new AppError(msg, 401, 'GOOGLE_AUTH_FAILED');
   }
 
-  const data = await response.json() as { localId: string; idToken: string; expiresIn: string };
+  return response.json() as Promise<FirebaseIdpSignInResult>;
+}
+
+export async function signInWithGoogle(input: GoogleSignInInput): Promise<SignInResult> {
+  const data = await signInWithGoogleIdp(input);
   const uid = data.localId;
 
-  // Fetch MongoDB profile for role/orgId
-  const doc = await findUserByUid(uid);
+  // Ensure user profile exists in MongoDB (upsert for new Google users)
+  let doc = await findUserByUid(uid);
+  if (!doc) {
+    const orgId = uid;
+    await upsertUser({
+      uid,
+      email: data.email,
+      displayName: data.displayName ?? data.email,
+      role: 'owner',
+      orgId,
+    });
+    doc = await findUserByUid(uid);
+  }
 
-  // Create a custom token so the client can re-auth with Firebase SDK
-  const customToken = await firebaseAuth.createCustomToken(uid);
   const tokenExpiry = Date.now() + parseInt(data.expiresIn, 10) * 1000;
 
   return {
     uid,
-    email: input.email,
-    displayName: doc?.displayName ?? input.email,
-    token: customToken,
+    email: data.email,
+    displayName: doc?.displayName ?? data.displayName ?? data.email,
+    token: data.idToken,
     tokenExpiry,
-    orgId: doc?.orgId ?? null,
-    role: doc?.role ?? null,
+    orgId: doc?.orgId ?? uid,
+    role: doc?.role ?? 'owner',
   };
 }

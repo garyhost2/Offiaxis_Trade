@@ -16,7 +16,7 @@ declare module 'fastify' {
   }
 }
 
-const PUBLIC_PATHS = new Set(['/health', '/api/auth/sign-in', '/api/auth/sign-up']);
+const PUBLIC_PATHS = new Set(['/health', '/api/auth/sign-in', '/api/auth/sign-up', '/api/auth/google']);
 
 export async function verifyFirebaseToken(
   request: FastifyRequest,

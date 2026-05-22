@@ -19,6 +19,7 @@ import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { getAllProjects } from '../utils/projectsData';
 import { useActivity } from '../contexts/ActivityContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Receipt categories
 const RECEIPT_CATEGORIES = [
@@ -141,6 +142,7 @@ const MOCK_RECEIPTS = [
 ];
 
 export default function ReceiptsScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { logActivity } = useActivity();
   
@@ -283,7 +285,7 @@ export default function ReceiptsScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
       <StatusBar barStyle="light-content" />
       
       {/* Header */}
@@ -291,7 +293,7 @@ export default function ReceiptsScreen() {
         colors={['#eab308', '#ca8a04']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={styles.header}
+        style={[styles.header, { paddingTop: insets.top + 12 }]}
       >
         <View style={styles.headerTop}>
           <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>

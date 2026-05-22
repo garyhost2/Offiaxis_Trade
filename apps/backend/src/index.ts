@@ -19,6 +19,8 @@ import receiptsRouter from './modules/receipts/router';
 import inventoryRouter from './modules/inventory/router';
 import scheduleRouter from './modules/schedule/router';
 import permitsRouter from './modules/permits/router';
+import siteNotesRouter from './modules/site-notes/router';
+import uploadsRouter from './modules/uploads/router';
 
 if (config.SENTRY_DSN) {
   Sentry.init({
@@ -108,6 +110,8 @@ async function buildApp() {
   await fastify.register(inventoryRouter);
   await fastify.register(scheduleRouter);
   await fastify.register(permitsRouter);
+  await fastify.register(siteNotesRouter);
+  await fastify.register(uploadsRouter);
 
   return fastify;
 }

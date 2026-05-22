@@ -159,8 +159,8 @@ export default function TimeTrackerSimple() {
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [transcriptWords, setTranscriptWords] = useState<string[]>([]);
   const [highlightedWordIndex, setHighlightedWordIndex] = useState(-1);
-  const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const playbackIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const recordingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const playbackIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Mock transcript data
   const mockTranscriptText = `General walk
@@ -416,7 +416,7 @@ Notes: Weather conditions were favorable today. All safety protocols followed.`;
       time: formatDisplayTime(currentTime),
       content: noteContent,
       photos: [...capturedPhotos],
-      audioUri: audioUri,
+      audioUri: audioUri || undefined,
       transcript: transcript
     };
     
@@ -444,7 +444,7 @@ Notes: Weather conditions were favorable today. All safety protocols followed.`;
       time: formatDisplayTime(currentTime),
       content: noteContent,
       photos: [...capturedPhotos],
-      audioUri: audioUri,
+      audioUri: audioUri || undefined,
       transcript: transcript
     };
     
@@ -891,7 +891,7 @@ Notes: Weather conditions were favorable today. All safety protocols followed.`;
           <View style={styles.summaryCard}>
             {/* Header Row */}
             <View style={styles.summaryHeader}>
-              <Text style={styles.summaryTitle}>Today's Summary</Text>
+              <Text style={styles.summaryTitle}>{"Today's Summary"}</Text>
               <Text style={styles.summaryDate}>Oct 29</Text>
             </View>
             
@@ -1147,7 +1147,7 @@ Notes: Weather conditions were favorable today. All safety protocols followed.`;
                           </View>
                           <TouchableOpacity 
                             style={styles.noteAudioPlayer}
-                            onPress={() => playNoteAudio(note.id, note.audioUri)}
+                            onPress={() => { if (note.audioUri) playNoteAudio(note.id, note.audioUri); }}
                             activeOpacity={0.7}
                           >
                             <View style={[styles.noteAudioIcon, playingNoteId === note.id && styles.noteAudioIconPlaying]}>

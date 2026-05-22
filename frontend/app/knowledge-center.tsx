@@ -19,6 +19,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   // Training Videos
   TrainingVideo,
@@ -59,6 +60,7 @@ const cardWidth = (width - 48) / 2;
 type TabType = 'training' | 'templates' | 'myTemplates';
 
 export default function KnowledgeCenterPage() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabType>('training');
   const [searchQuery, setSearchQuery] = useState('');
@@ -806,13 +808,13 @@ export default function KnowledgeCenterPage() {
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
       <StatusBar barStyle="light-content" />
 
       {/* Header */}
       <LinearGradient
         colors={['#7C3AED', '#A855F7']}
-        style={styles.header}
+        style={[styles.header, { paddingTop: insets.top + 12 }]}
       >
         <View style={styles.headerTop}>
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
@@ -1719,7 +1721,7 @@ export default function KnowledgeCenterPage() {
               <Ionicons name="warning-outline" size={32} color="#F59E0B" />
             </View>
             <Text style={styles.categoryActionTitle}>
-              Do you want to delete "{selectedCategoryForAction}" category or rename it?
+              {`Do you want to delete "${selectedCategoryForAction}" category or rename it?`}
             </Text>
             <View style={styles.categoryActionButtons}>
               <TouchableOpacity

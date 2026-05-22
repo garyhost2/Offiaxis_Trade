@@ -23,6 +23,7 @@ import * as ImagePicker from 'expo-image-picker';
 import Svg, { Rect, Line, Text as SvgText } from 'react-native-svg';
 import { Calendar } from 'react-native-calendars';
 import { useActivity } from '../contexts/ActivityContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -600,6 +601,7 @@ const BarcodeDisplay: React.FC<{ value: string; width?: number; height?: number 
 
 // ============= MAIN COMPONENT =============
 export default function InventoryScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { logActivity } = useActivity();
   const [activeTab, setActiveTab] = useState<TabType>('products');
@@ -1799,7 +1801,7 @@ export default function InventoryScreen() {
       expectedReturnDate: editExpectedReturn,
       actualReturnDate: editCheckoutStatus === 'returned' 
         ? (editActualReturn || new Date()) 
-        : editActualReturn,
+        : editActualReturn || undefined,
     };
     
     setCheckoutRecords(prev => prev.map(r => 
@@ -2425,13 +2427,13 @@ export default function InventoryScreen() {
 
   // ============= MAIN RENDER =============
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
       {/* Header */}
       <LinearGradient
         colors={['#F59E0B', '#F97316']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0 }}
-        style={styles.header}
+        style={[styles.header, { paddingTop: insets.top + 12 }]}
       >
         <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
@@ -3368,7 +3370,7 @@ export default function InventoryScreen() {
                 style={styles.unitDropdownBtn}
                 onPress={() => setShowEditUnitDropdown(!showEditUnitDropdown)}
               >
-                <Text style={styles.unitDropdownBtnText}>{editItemUnit}</Text>
+                <Text style={styles.unitDropdownText}>{editItemUnit}</Text>
                 <Ionicons name={showEditUnitDropdown ? "chevron-up" : "chevron-down"} size={20} color="#64748B" />
               </TouchableOpacity>
               {showEditUnitDropdown && (
@@ -3656,7 +3658,7 @@ export default function InventoryScreen() {
             <Ionicons name="checkmark-circle" size={64} color="#10B981" />
             <Text style={styles.confirmTitle}>Return Tool?</Text>
             <Text style={styles.confirmText}>
-              Confirm that "{selectedTool?.name}" has been returned and is in good condition.
+              {`Confirm that "${selectedTool?.name ?? ''}" has been returned and is in good condition.`}
             </Text>
             <View style={styles.confirmActions}>
               <TouchableOpacity
@@ -4552,7 +4554,9 @@ export default function InventoryScreen() {
             <View style={styles.locationDetailHeaderInfo}>
               <Text style={styles.locationDetailTitle}>{selectedLocationForDetail?.name}</Text>
               <Text style={styles.locationDetailSubtitle}>
-                {selectedLocationForDetail?.type.charAt(0).toUpperCase() + selectedLocationForDetail?.type.slice(1)}
+                {selectedLocationForDetail?.type
+                  ? selectedLocationForDetail.type.charAt(0).toUpperCase() + selectedLocationForDetail.type.slice(1)
+                  : ''}
               </Text>
             </View>
             <View style={styles.locationDetailHeaderIcon}>
@@ -5629,15 +5633,6 @@ const styles = StyleSheet.create({
   checkoutToolImagePlaceholder: {
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  checkoutToolInfo: {
-    flex: 1,
-  },
-  checkoutToolName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 2,
   },
   checkoutToolUser: {
     fontSize: 13,

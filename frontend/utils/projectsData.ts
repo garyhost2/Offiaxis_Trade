@@ -20,7 +20,20 @@ export const formatDateWithoutTimezone = (dateInput: any): string => {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 };
 
-let projectsStore = [
+export type Project = {
+  id: number;
+  name: string;
+  street: string;
+  city: string;
+  phone: string;
+  email?: string;
+  status: string;
+  initials: string;
+  galleryDescription?: string;
+  [key: string]: any;
+};
+
+let projectsStore: Project[] = [
   { 
     id: 1, 
     galleryDescription: 'Kitchen Remodel',
@@ -932,7 +945,7 @@ export const updatePhotoInProjectFolder = (projectId: number, folderId: string, 
         ...p,
         galleryPhotos: {
           ...p.galleryPhotos,
-          [folderId]: folderPhotos.map(photo => 
+          [folderId]: folderPhotos.map((photo: GalleryPhoto) => 
             photo.id === updatedPhoto.id ? updatedPhoto : photo
           )
         }
@@ -954,7 +967,7 @@ export const deletePhotoFromProjectFolder = (projectId: number, folderId: string
         ...p,
         galleryPhotos: {
           ...p.galleryPhotos,
-          [folderId]: folderPhotos.filter(photo => photo.id !== photoId)
+          [folderId]: folderPhotos.filter((photo: GalleryPhoto) => photo.id !== photoId)
         }
       };
     }

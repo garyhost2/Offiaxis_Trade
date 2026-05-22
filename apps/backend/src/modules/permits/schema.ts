@@ -31,9 +31,19 @@ export const PermitResponseSchema = z.object({
 });
 
 export const ExtractPermitSchema = z.object({
-  imageUrl: z.string().url(),
+  imageBase64: z.string().min(1),
+});
+
+export const ExtractPermitResponseSchema = z.object({
+  permitNumber: z.string().nullable().optional(),
+  issueDate: z.string().nullable().optional(),
+  expirationDate: z.string().nullable().optional(),
+  fees: z.string().nullable().optional(),
+  success: z.boolean(),
+  error: z.string().nullable().optional(),
 });
 
 export type CreatePermitInput = z.infer<typeof CreatePermitSchema>;
 export type UpdatePermitInput = z.infer<typeof UpdatePermitSchema>;
 export type ExtractPermitInput = z.infer<typeof ExtractPermitSchema>;
+export type ExtractPermitResponse = z.infer<typeof ExtractPermitResponseSchema>;

@@ -6,8 +6,9 @@ import {
   SignUpSchema,
   SignInSchema,
   SignInResponseSchema,
+  GoogleSignInSchema,
 } from './schema';
-import { registerOrUpdateUser, getMe, changeUserRole, signUpUser, signInUser } from './service';
+import { registerOrUpdateUser, getMe, changeUserRole, signUpUser, signInUser, signInWithGoogle } from './service';
 import { ForbiddenError } from '../../shared/errors';
 import { ADMIN_ROLES } from './types';
 import log from '../../core/logger';
@@ -35,6 +36,18 @@ const router: FastifyPluginAsyncZod = async (fastify) => {
   }, async (request, reply) => {
     const result = await signInUser(request.body);
     log.info('User signed in', { requestId: request.id, uid: result.uid });
+    return reply.status(200).send(result);
+  });
+
+  fastify.post('/api/auth/google', {
+    config: { skipAuth: true },
+    schema: {
+      body: GoogleSignInSchema,
+      response: { 200: SignInResponseSchema },
+    },
+  }, async (request, reply) => {
+    const result = await signInWithGoogle(request.body);
+    log.info('User signed in with Google', { requestId: request.id, uid: result.uid });
     return reply.status(200).send(result);
   });
 

@@ -3,10 +3,12 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Modal 
 import { LinearGradient } from 'expo-linear-gradient';
 import Svg, { Path } from 'react-native-svg';
 import TimeTrackerLayout from '../../components/TimeTrackerLayout';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type TrackerVariant = 'Time Tracker #1 (Simple)' | 'Time Tracker #2 (Common one)' | 'Time Tracker #3 (Automated)' | 'Admin';
 
 export default function TrackerScreen() {
+  const insets = useSafeAreaInsets();
   const [selectedTracker, setSelectedTracker] = useState<TrackerVariant>('Time Tracker #1 (Simple)');
   const [dropdownVisible, setDropdownVisible] = useState(false);
 
@@ -26,7 +28,7 @@ export default function TrackerScreen() {
           colors={['#5b62ff', '#2f7bff']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
-          style={styles.header}
+          style={[styles.header, { paddingTop: insets.top + 12 }]}
         >
           <View style={styles.headerContent}>
             {/* Minimal Variant Selector - Small "v" Icon */}

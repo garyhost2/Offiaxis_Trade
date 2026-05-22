@@ -372,7 +372,7 @@ export default function InspectionDetailModal({
                       style={[styles.dropdownItem, styles.addCustomItem]}
                       onPress={() => {
                         setShowCustomStatusInput(true);
-                        setShowStatusDropdown(false);
+                        setShowInspectionTypeDropdown(false);
                       }}
                     >
                       <Ionicons name="add-circle" size={20} color="#4F46E5" />
@@ -601,7 +601,7 @@ export default function InspectionDetailModal({
                 <Ionicons name="warning" size={48} color="#EF4444" />
                 <Text style={styles.warningTitle}>Delete Status?</Text>
                 <Text style={styles.warningMessage}>
-                  Do you want to delete "{longPressedStatus}"?
+                  {`Do you want to delete "${longPressedStatus}"?`}
                 </Text>
                 <View style={styles.warningButtons}>
                   <TouchableOpacity

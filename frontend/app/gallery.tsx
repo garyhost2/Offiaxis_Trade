@@ -17,6 +17,7 @@ import {
 } from '../utils/projectsData';
 import * as ImagePicker from 'expo-image-picker';
 import { useActivity } from '../contexts/ActivityContext';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 const imageSize = (width - 48) / 2; // 2 columns with padding
@@ -72,6 +73,7 @@ const getStatusColor = (status: string) => {
 };
 
 export default function GalleryPage() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { logActivity } = useActivity();
   
@@ -335,7 +337,7 @@ export default function GalleryPage() {
       m.name.toLowerCase().includes(materialSearchQuery.toLowerCase()) ||
       m.description.toLowerCase().includes(materialSearchQuery.toLowerCase()) ||
       m.brand?.toLowerCase().includes(materialSearchQuery.toLowerCase()) ||
-      m.model?.toLowerCase().includes(materialSearchQuery.toLowerCase());
+      m.modelNumber?.toLowerCase().includes(materialSearchQuery.toLowerCase());
     return matchesCategory && matchesSearch;
   });
 
@@ -558,13 +560,13 @@ export default function GalleryPage() {
   });
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
       <StatusBar barStyle="light-content" />
       
       {/* Header */}
       <LinearGradient
         colors={['#4F46E5', '#6366F1']}
-        style={styles.header}
+        style={[styles.header, { paddingTop: insets.top + 12 }]}
       >
         <View style={styles.headerTop}>
           {/* Back Button */}

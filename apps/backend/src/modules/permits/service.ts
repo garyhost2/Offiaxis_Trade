@@ -5,7 +5,7 @@ import {
   updatePermit,
   deletePermit,
 } from './repository';
-import { CreatePermitInput, UpdatePermitInput } from './schema';
+import { CreatePermitInput, ExtractPermitInput, ExtractPermitResponse, UpdatePermitInput } from './schema';
 import { Permit } from './types';
 import { NotFoundError } from '../../shared/errors';
 import { config } from '../../core/config';
@@ -77,27 +77,27 @@ export async function deletePermitService(
 }
 
 export async function extractPermitData(
-  imageUrl: string
-): Promise<Record<string, unknown>> {
+  input: ExtractPermitInput
+): Promise<ExtractPermitResponse> {
   try {
-    const response = await fetch(`${config.AI_SERVICE_URL}/extract-permit`, {
+    const response = await fetch(`${config.AI_SERVICE_URL}/api/extract-permit`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ image_url: imageUrl }),
+      body: JSON.stringify(input),
     });
 
     if (!response.ok) {
       log.error('AI service extract-permit failed', {
         status: response.status.toString(),
       });
-      return {};
+      return { success: false, error: 'Permit extraction service failed' };
     }
 
-    return (await response.json()) as Record<string, unknown>;
+    return (await response.json()) as ExtractPermitResponse;
   } catch (error) {
     log.error('AI service extract-permit error', {
       error: error instanceof Error ? error.message : String(error),
     });
-    return {};
+    return { success: false, error: 'Permit extraction service unavailable' };
   }
 }

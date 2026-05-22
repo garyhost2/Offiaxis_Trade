@@ -5,6 +5,7 @@ import {
   UpdatePermitSchema,
   PermitResponseSchema,
   ExtractPermitSchema,
+  ExtractPermitResponseSchema,
 } from './schema';
 import {
   createPermitService,
@@ -84,14 +85,12 @@ const router: FastifyPluginAsyncZod = async (fastify) => {
     schema: {
       body: ExtractPermitSchema,
       response: {
-        200: z.object({
-          extractedData: z.record(z.string(), z.unknown()),
-        }),
+        200: ExtractPermitResponseSchema,
       },
     },
   }, async (request, reply) => {
-    const extractedData = await extractPermitData(request.body.imageUrl);
-    return reply.status(200).send({ extractedData });
+    const extractedData = await extractPermitData(request.body);
+    return reply.status(200).send(extractedData);
   });
 };
 

@@ -1,22 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Modal, TextInput, Image, Alert, ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { Calendar } from 'react-native-calendars';
 import { useRouter } from 'expo-router';
 import { getAllPortfolios, Portfolio, getAllProjects } from '../../utils/projectsData';
-import { useActivity, formatTimeAgo, getActivityColor, Activity } from '../../contexts/ActivityContext';
+import { useActivity, formatTimeAgo, getActivityColor } from '../../contexts/ActivityContext';
+import { useAuth } from '../../contexts/AuthContext';
 import * as ImagePicker from 'expo-image-picker';
+import { colors } from '../../shared/theme';
 
-// Employee data with different hourly rates
-const employees = [
-  { id: '1', name: 'Yefry Soto', initials: 'YS', role: 'Admin', hourlyRate: 25, hours: 38 },
-  { id: '2', name: 'Azis K', initials: 'AK', role: 'Admin', hourlyRate: 22, hours: 42 },
-  { id: '3', name: 'Oumayama M', initials: 'OM', role: 'Employee', hourlyRate: 18, hours: 35 },
-  { id: '4', name: 'Sarash Williams', initials: 'SW', role: 'Employee', hourlyRate: 20, hours: 40 },
-  { id: '5', name: 'Emely Devis', initials: 'ED', role: 'Employee', hourlyRate: 19, hours: 32 },
+// Employee data — TODO: replace with API call when timetracking endpoint is live
+const PLACEHOLDER_EMPLOYEES = [
+  { id: '1', name: 'Employee 1', initials: 'E1', role: 'Admin', hourlyRate: 25, hours: 38 },
+  { id: '2', name: 'Employee 2', initials: 'E2', role: 'Admin', hourlyRate: 22, hours: 42 },
+  { id: '3', name: 'Employee 3', initials: 'E3', role: 'Employee', hourlyRate: 18, hours: 35 },
+  { id: '4', name: 'Employee 4', initials: 'E4', role: 'Employee', hourlyRate: 20, hours: 40 },
+  { id: '5', name: 'Employee 5', initials: 'E5', role: 'Employee', hourlyRate: 19, hours: 32 },
 ];
+const employees = PLACEHOLDER_EMPLOYEES;
 
 // Time period options for P&L
 const timePeriodOptions = [
@@ -57,6 +60,18 @@ const plDataByPeriod: Record<string, { totalIncome: number; totalExpenses: numbe
 };
 
 // Helper to format week range
+// Receipt category definitions — module scope so render does not re-create on each paint
+const receiptCategories = [
+  { id: 'materials', label: 'Materials', icon: 'cube-outline' },
+  { id: 'tools', label: 'Tools & Equipment', icon: 'construct-outline' },
+  { id: 'labor', label: 'Labor', icon: 'people-outline' },
+  { id: 'permits', label: 'Permits & Fees', icon: 'document-text-outline' },
+  { id: 'transportation', label: 'Transportation', icon: 'car-outline' },
+  { id: 'utilities', label: 'Utilities', icon: 'flash-outline' },
+  { id: 'office', label: 'Office Supplies', icon: 'briefcase-outline' },
+  { id: 'other', label: 'Other', icon: 'ellipsis-horizontal-outline' },
+];
+
 const formatWeekRange = (start: Date) => {
   const end = new Date(start);
   end.setDate(end.getDate() + 6);
@@ -76,6 +91,8 @@ const getWeekStart = (date: Date) => {
 
 export default function HomeScreen() {
   const router = useRouter();
+  const { currentUser } = useAuth();
+  const insets = useSafeAreaInsets();
   const { activities, logActivity } = useActivity();
   
   // Selected employee state
@@ -92,6 +109,7 @@ export default function HomeScreen() {
   
   // P&L summary state - using mock data based on selected period
   const [plSummary, setPlSummary] = useState(plDataByPeriod['this_year']);
+  const [quickActionMessage, setQuickActionMessage] = useState<string | null>(null);
 
   // Handle time period selection
   const handleSelectTimePeriod = (period: typeof timePeriodOptions[0]) => {
@@ -125,17 +143,7 @@ export default function HomeScreen() {
   const [manualTotal, setManualTotal] = useState('');
   const [manualCategory, setManualCategory] = useState('');
 
-  // Receipt categories
-  const receiptCategories = [
-    { id: 'materials', label: 'Materials', icon: 'cube-outline' },
-    { id: 'tools', label: 'Tools & Equipment', icon: 'construct-outline' },
-    { id: 'labor', label: 'Labor', icon: 'people-outline' },
-    { id: 'permits', label: 'Permits & Fees', icon: 'document-text-outline' },
-    { id: 'transportation', label: 'Transportation', icon: 'car-outline' },
-    { id: 'utilities', label: 'Utilities', icon: 'flash-outline' },
-    { id: 'office', label: 'Office Supplies', icon: 'briefcase-outline' },
-    { id: 'other', label: 'Other', icon: 'ellipsis-horizontal-outline' },
-  ];
+  // receiptCategories is defined at module scope in shared/status.ts — import RECEIPT_CATEGORIES if needed
 
   // Reset manual form
   const resetManualForm = () => {
@@ -162,10 +170,13 @@ export default function HomeScreen() {
     loadProjects();
   }, []);
 
-  // Filter portfolios based on search query
-  const filteredPortfolios = portfolios.filter(portfolio => 
-    portfolio.title.toLowerCase().includes(portfolioSearchQuery.toLowerCase()) ||
-    (portfolio.description && portfolio.description.toLowerCase().includes(portfolioSearchQuery.toLowerCase()))
+  // Filter portfolios — memoized so it only runs when data or query changes
+  const filteredPortfolios = useMemo(
+    () => portfolios.filter(portfolio =>
+      portfolio.title.toLowerCase().includes(portfolioSearchQuery.toLowerCase()) ||
+      (portfolio.description && portfolio.description.toLowerCase().includes(portfolioSearchQuery.toLowerCase()))
+    ),
+    [portfolios, portfolioSearchQuery]
   );
 
   // Handle portfolio search input
@@ -184,6 +195,29 @@ export default function HomeScreen() {
   // Navigate to full portfolio gallery
   const handleViewAllPortfolios = () => {
     router.push('/gallery?tab=portfolio');
+  };
+
+  const handleClockInOut = () => {
+    setQuickActionMessage(null);
+    router.push('/(tabs)/tracker');
+  };
+
+  const handleUploadFile = () => {
+    setQuickActionMessage('Document upload is not available yet. Use Receipts to attach expense photos.');
+  };
+
+  const handleReceiptsAction = () => {
+    setQuickActionMessage(null);
+    setShowReceiptPhotoOptions(true);
+  };
+
+  const handleInventoryScanner = () => {
+    setQuickActionMessage(null);
+    router.push('/inventory');
+  };
+
+  const showUnavailableQuickAction = (message: string) => {
+    setQuickActionMessage(message);
   };
 
   // Generate random hours when switching employees
@@ -210,13 +244,8 @@ export default function HomeScreen() {
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       
       <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-        {/* Header Section */}
-        <LinearGradient
-          colors={['#8B5CF6', '#6366F1']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.header}
-        >
+        {/* Header Section — dark slate brand surface, not the generic indigo gradient */}
+        <View style={[styles.header, { paddingTop: insets.top + 16 }]}>
           {/* Top Bar */}
           <View style={styles.topBar}>
             <View style={styles.brandingContainer}>
@@ -229,10 +258,20 @@ export default function HomeScreen() {
               </View>
             </View>
             <View style={styles.topBarIcons}>
-              <TouchableOpacity style={styles.iconButton}>
+              <TouchableOpacity
+                style={styles.iconButton}
+                onPress={() => showUnavailableQuickAction('Search is not available yet.')}
+                accessibilityRole="button"
+                accessibilityLabel="Search"
+              >
                 <Ionicons name="search" size={24} color="#FFFFFF" />
               </TouchableOpacity>
-              <TouchableOpacity style={styles.iconButton}>
+              <TouchableOpacity
+                style={styles.iconButton}
+                onPress={() => showUnavailableQuickAction('Notifications are not available yet.')}
+                accessibilityRole="button"
+                accessibilityLabel="Notifications"
+              >
                 <Ionicons name="notifications-outline" size={24} color="#FFFFFF" />
               </TouchableOpacity>
             </View>
@@ -241,20 +280,29 @@ export default function HomeScreen() {
           {/* Welcome Section */}
           <View style={styles.welcomeSection}>
             <Text style={styles.welcomeText}>Welcome back,</Text>
-            <Text style={styles.userName}>Yefry Soto</Text>
+            <Text style={styles.userName}>
+              {currentUser?.displayName ?? currentUser?.email?.split('@')[0] ?? 'Contractor'}
+            </Text>
             <View style={styles.roleBadge}>
               <View style={styles.greenDot} />
-              <Text style={styles.roleText}>Admin</Text>
+              <Text style={styles.roleText}>Active</Text>
             </View>
           </View>
-        </LinearGradient>
+        </View>
 
         {/* Quick Actions */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Quick Actions</Text>
           <View style={styles.quickActionsGrid}>
             {/* Clock In/Out */}
-            <TouchableOpacity style={styles.actionCard}>
+            <TouchableOpacity
+              style={styles.actionCard}
+              onPress={handleClockInOut}
+              accessibilityRole="button"
+              accessibilityLabel="Clock In/Out"
+              accessibilityHint="Open the time tracker"
+              testID="home-clock-action"
+            >
               <View style={[styles.actionIconContainer, { backgroundColor: '#E0F2F1' }]}>
                 <Ionicons name="time-outline" size={32} color="#14B8A6" />
               </View>
@@ -263,7 +311,14 @@ export default function HomeScreen() {
             </TouchableOpacity>
 
             {/* Upload File */}
-            <TouchableOpacity style={styles.actionCard}>
+            <TouchableOpacity
+              style={styles.actionCard}
+              onPress={handleUploadFile}
+              accessibilityRole="button"
+              accessibilityLabel="Upload File"
+              accessibilityHint="Shows document upload status"
+              testID="home-upload-action"
+            >
               <View style={[styles.actionIconContainer, { backgroundColor: '#E3F2FD' }]}>
                 <Ionicons name="add" size={32} color="#3B82F6" />
               </View>
@@ -274,7 +329,11 @@ export default function HomeScreen() {
             {/* Receipts */}
             <TouchableOpacity 
               style={styles.actionCard}
-              onPress={() => setShowReceiptPhotoOptions(true)}
+              onPress={handleReceiptsAction}
+              accessibilityRole="button"
+              accessibilityLabel="Receipts"
+              accessibilityHint="Add or scan a receipt"
+              testID="home-receipts-action"
             >
               <View style={[styles.actionIconContainer, { backgroundColor: '#FEF3C7' }]}>
                 <Ionicons name="receipt-outline" size={32} color="#F59E0B" />
@@ -284,7 +343,14 @@ export default function HomeScreen() {
             </TouchableOpacity>
 
             {/* Inventory Scanner */}
-            <TouchableOpacity style={styles.actionCard}>
+            <TouchableOpacity
+              style={styles.actionCard}
+              onPress={handleInventoryScanner}
+              accessibilityRole="button"
+              accessibilityLabel="Inventory Scanner"
+              accessibilityHint="Open inventory tools"
+              testID="home-inventory-action"
+            >
               <View style={[styles.actionIconContainer, { backgroundColor: '#F5F5F5' }]}>
                 <Ionicons name="qr-code-outline" size={32} color="#6B7280" />
               </View>
@@ -292,6 +358,20 @@ export default function HomeScreen() {
               <Text style={styles.actionSubtitle}>Scan items or take from inventory</Text>
             </TouchableOpacity>
           </View>
+
+          {quickActionMessage && (
+            <View style={styles.quickActionNotice} accessibilityRole="alert" testID="home-quick-action-notice">
+              <Ionicons name="information-circle-outline" size={18} color="#1D4ED8" />
+              <Text style={styles.quickActionNoticeText}>{quickActionMessage}</Text>
+              <TouchableOpacity
+                onPress={() => setQuickActionMessage(null)}
+                accessibilityRole="button"
+                accessibilityLabel="Dismiss quick action message"
+              >
+                <Ionicons name="close" size={18} color="#1D4ED8" />
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
 
         {/* Weekly Timesheet */}
@@ -661,7 +741,12 @@ export default function HomeScreen() {
       </Modal>
 
       {/* Floating Action Button */}
-      <TouchableOpacity style={styles.fab}>
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => showUnavailableQuickAction('Cloud assistant sync is not available yet.')}
+        accessibilityRole="button"
+        accessibilityLabel="Cloud assistant sync"
+      >
         <LinearGradient
           colors={['#8B5CF6', '#6366F1']}
           start={{ x: 0, y: 0 }}
@@ -1158,12 +1243,14 @@ export default function HomeScreen() {
                     
                     // Log the activity for manual entry
                     const categoryLabel = receiptCategories.find(c => c.id === manualCategory)?.label || manualCategory;
+                    const authName = currentUser?.displayName ?? currentUser?.email?.split('@')[0] ?? 'User';
+                    const authInitials = authName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
                     logActivity({
                       type: 'receipt',
                       action: 'added',
                       description: `added $${manualTotal} receipt from ${manualMerchant} (${categoryLabel})`,
-                      userName: 'Yefry Soto',
-                      userInitials: 'YS',
+                      userName: authName,
+                      userInitials: authInitials,
                       projectName: selectedProject?.name,
                       metadata: { 
                         amount: manualTotal, 
@@ -1174,12 +1261,14 @@ export default function HomeScreen() {
                     });
                   } else {
                     // Log the activity for AI extracted
+                    const authName2 = currentUser?.displayName ?? currentUser?.email?.split('@')[0] ?? 'User';
+                    const authInitials2 = authName2.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
                     logActivity({
                       type: 'receipt',
                       action: 'uploaded',
                       description: `uploaded receipt for $${extractedReceiptData.totalAmount} from ${extractedReceiptData.storeName}`,
-                      userName: 'Yefry Soto',
-                      userInitials: 'YS',
+                      userName: authName2,
+                      userInitials: authInitials2,
                       projectName: selectedProject?.name,
                       metadata: { 
                         amount: extractedReceiptData.totalAmount, 
@@ -1214,9 +1303,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
   },
   header: {
-    paddingTop: 50,
+    // paddingTop set dynamically via insets.top + 16
     paddingBottom: 32,
     paddingHorizontal: 20,
+    backgroundColor: colors.brand.bg,
   },
   topBar: {
     flexDirection: 'row',
@@ -1332,6 +1422,24 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#6B7280',
     lineHeight: 16,
+  },
+  quickActionNotice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 8,
+    marginTop: 16,
+    backgroundColor: '#DBEAFE',
+    borderColor: '#93C5FD',
+    borderWidth: 1,
+    borderRadius: 12,
+    padding: 12,
+  },
+  quickActionNoticeText: {
+    flex: 1,
+    color: '#1D4ED8',
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '500',
   },
   sectionHeader: {
     flexDirection: 'row',

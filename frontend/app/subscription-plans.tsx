@@ -7,6 +7,7 @@ import {
   StatusBar,
   ScrollView,
   Modal,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -80,7 +81,7 @@ const PLANS: Record<PlanType, PlanDetails> = {
 
 export default function SubscriptionPlansScreen() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { completePendingSignUp } = useAuth();
   const { role } = useLocalSearchParams<{ role?: string }>();
   const [selectedPlan, setSelectedPlan] = useState<PlanType>('essential');
   const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
@@ -121,10 +122,14 @@ export default function SubscriptionPlansScreen() {
     }
   };
 
-  const handlePaymentComplete = () => {
+  const handlePaymentComplete = async () => {
     setShowPaymentModal(false);
-    login();
-    router.replace('/(tabs)/home');
+    try {
+      await completePendingSignUp({ accountType: isTradeRole ? 'trade' : 'gc', role: 'owner' });
+      router.replace('/(tabs)/home');
+    } catch (error) {
+      Alert.alert('Account Setup Failed', error instanceof Error ? error.message : 'Unable to finish account setup.');
+    }
   };
 
   const calculateTotal = () => {
@@ -264,7 +269,7 @@ export default function SubscriptionPlansScreen() {
 
           {/* What's Included */}
           <View style={styles.featuresContainer}>
-            <Text style={styles.featuresTitle}>What's included in the Admin plan</Text>
+            <Text style={styles.featuresTitle}>{"What's included in the Admin plan"}</Text>
             {currentPlan.features.map((feature, index) => (
               <View key={index} style={styles.featureItem}>
                 <View style={[styles.featureCheckCircle, { backgroundColor: `${currentPlan.color}20` }]}>

@@ -7,6 +7,7 @@ import {
   StatusBar,
   ScrollView,
   Modal,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -16,7 +17,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 export default function TimeTrackerOptionsScreen() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { completePendingSignUp } = useAuth();
   const searchParams = useLocalSearchParams();
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [showDisclaimerModal, setShowDisclaimerModal] = useState(false);
@@ -43,11 +44,14 @@ export default function TimeTrackerOptionsScreen() {
     setShowPaymentModal(true);
   };
 
-  const handlePaymentComplete = () => {
-    // Close payment modal and navigate to app
+  const handlePaymentComplete = async () => {
     setShowPaymentModal(false);
-    login();
-    router.replace('/(tabs)/home');
+    try {
+      await completePendingSignUp({ role: 'owner' });
+      router.replace('/(tabs)/home');
+    } catch (error) {
+      Alert.alert('Account Setup Failed', error instanceof Error ? error.message : 'Unable to finish account setup.');
+    }
   };
 
   return (
@@ -73,8 +77,7 @@ export default function TimeTrackerOptionsScreen() {
             <Text style={styles.contextBadgeText}>Employee User</Text>
           </View>
           <Text style={styles.contextText}>
-            Given that you have picked "Employee User," we have 3 options available for "Time Tracker". 
-            Please select the one that best fits your needs.
+            {'Given that you have picked "Employee User," we have 3 options available for "Time Tracker". Please select the one that best fits your needs.'}
           </Text>
         </View>
 
@@ -232,7 +235,7 @@ export default function TimeTrackerOptionsScreen() {
             <ScrollView style={styles.modalScroll}>
               <Text style={styles.modalWelcome}>Welcome to OffiAxis!</Text>
               <Text style={styles.modalText}>
-                To make your workday easier, we use automated GPS-based time tracking during your scheduled work hours. Here's how it works:
+                {"To make your workday easier, we use automated GPS-based time tracking during your scheduled work hours. Here's how it works:"}
               </Text>
 
               <View style={styles.modalSection}>

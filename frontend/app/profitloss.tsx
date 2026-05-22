@@ -3,12 +3,11 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, Status
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import Constants from 'expo-constants';
 import { PieChart } from 'react-native-chart-kit';
-import { getAllProjects } from '../utils/projectsData';
+import { getAllProjects, type Project } from '../utils/projectsData';
 import { useActivity } from '../contexts/ActivityContext';
-
-const BACKEND_URL = Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL || process.env.EXPO_PUBLIC_BACKEND_URL;
+import { buildApiUrl, getAuthHeaders } from '../shared/store/baseApi';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -16,10 +15,11 @@ const ProfitLossScreen = () => {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { logActivity } = useActivity();
+  const insets = useSafeAreaInsets();
   
   // State
   const [loading, setLoading] = useState(true);
-  const [selectedProject, setSelectedProject] = useState<'all' | number>('all');
+  const [selectedProject, setSelectedProject] = useState<'all' | number | string>('all');
   const [selectedTime, setSelectedTime] = useState('all');
   const [selectedJobType, setSelectedJobType] = useState('all');
   const [activeTab, setActiveTab] = useState<'expenses' | 'income'>('expenses');
@@ -30,10 +30,10 @@ const ProfitLossScreen = () => {
   
   // Data state
   const [summary, setSummary] = useState({ totalIncome: 0, totalExpenses: 0, profit: 0, status: 'profitable' });
-  const [breakdown, setBreakdown] = useState([]);
-  const [expenses, setExpenses] = useState([]);
-  const [income, setIncome] = useState([]);
-  const [projects, setProjects] = useState([]);
+  const [breakdown, setBreakdown] = useState<any[]>([]);
+  const [expenses, setExpenses] = useState<any[]>([]);
+  const [income, setIncome] = useState<any[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
   
   // Modal states
   const [addExpenseModalVisible, setAddExpenseModalVisible] = useState(false);
@@ -305,7 +305,9 @@ const ProfitLossScreen = () => {
       const queryString = params.toString();
       
       // Fetch summary
-      const summaryRes = await fetch(`${BACKEND_URL}/api/profit-loss/summary?${queryString}`);
+      const summaryRes = await fetch(buildApiUrl(`/api/profit-loss/summary?${queryString}`), {
+        headers: getAuthHeaders(),
+      });
       const summaryData = await summaryRes.json();
       
       // Calculate income from change orders (from local data)
@@ -336,7 +338,9 @@ const ProfitLossScreen = () => {
       });
       
       // Fetch breakdown
-      const breakdownRes = await fetch(`${BACKEND_URL}/api/profit-loss/breakdown?${queryString}`);
+      const breakdownRes = await fetch(buildApiUrl(`/api/profit-loss/breakdown?${queryString}`), {
+        headers: getAuthHeaders(),
+      });
       const breakdownData = await breakdownRes.json();
       
       // Add receipt category to breakdown if there are receipt expenses
@@ -358,7 +362,9 @@ const ProfitLossScreen = () => {
       setBreakdown(updatedBreakdown);
       
       // Fetch expenses
-      const expensesRes = await fetch(`${BACKEND_URL}/api/profit-loss/expenses?${queryString}`);
+      const expensesRes = await fetch(buildApiUrl(`/api/profit-loss/expenses?${queryString}`), {
+        headers: getAuthHeaders(),
+      });
       const expensesData = await expensesRes.json();
       
       // When viewing a specific project, use permit and receipt expenses only
@@ -371,7 +377,9 @@ const ProfitLossScreen = () => {
       setExpenses(combinedExpenses);
       
       // Fetch income
-      const incomeRes = await fetch(`${BACKEND_URL}/api/profit-loss/income?${queryString}`);
+      const incomeRes = await fetch(buildApiUrl(`/api/profit-loss/income?${queryString}`), {
+        headers: getAuthHeaders(),
+      });
       const incomeData = await incomeRes.json();
       
       // If viewing a specific project, ONLY show change order income (no backend manual entries)
@@ -442,9 +450,9 @@ const ProfitLossScreen = () => {
         jobType: selectedJobType !== 'all' ? selectedJobType : null,
       };
       
-      const res = await fetch(`${BACKEND_URL}/api/profit-loss/expenses`, {
+      const res = await fetch(buildApiUrl('/api/profit-loss/expenses'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify(payload),
       });
       
@@ -513,9 +521,9 @@ const ProfitLossScreen = () => {
         jobType: selectedJobType !== 'all' ? selectedJobType : null,
       };
       
-      const res = await fetch(`${BACKEND_URL}/api/profit-loss/income`, {
+      const res = await fetch(buildApiUrl('/api/profit-loss/income'), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: getAuthHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify(payload),
       });
       
@@ -653,11 +661,11 @@ const ProfitLossScreen = () => {
   }
   
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
       <StatusBar barStyle="light-content" />
       
       {/* Header */}
-      <LinearGradient colors={['#4F46E5', '#7C3AED']} style={styles.header}>
+      <LinearGradient colors={['#4F46E5', '#7C3AED']} style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <Ionicons name="arrow-back" size={24} color="#FFFFFF" />
         </TouchableOpacity>
@@ -1080,7 +1088,7 @@ const ProfitLossScreen = () => {
           onPress={() => {
             // Pre-select project if one is selected on the page
             if (selectedProject !== 'all') {
-              setIncomeForm({ ...incomeForm, projectId: selectedProject });
+              setIncomeForm({ ...incomeForm, projectId: String(selectedProject) });
             }
             setAddIncomeModalVisible(true);
           }}
@@ -1094,7 +1102,7 @@ const ProfitLossScreen = () => {
           onPress={() => {
             // Pre-select project if one is selected on the page
             if (selectedProject !== 'all') {
-              setExpenseForm({ ...expenseForm, projectId: selectedProject });
+              setExpenseForm({ ...expenseForm, projectId: String(selectedProject) });
             }
             setAddExpenseModalVisible(true);
           }}

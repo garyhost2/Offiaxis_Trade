@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { getProjectById, updateProjectGalleryDescription, getProjectPhotosCounts } from '../utils/projectsData';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type FolderType = 'before' | 'during' | 'final' | 'issues';
 
@@ -18,6 +19,7 @@ interface PhotoFolder {
 }
 
 export default function ProjectGalleryPage() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const params = useLocalSearchParams();
   const projectId = params.id as string;
@@ -101,13 +103,13 @@ export default function ProjectGalleryPage() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
       <StatusBar barStyle="light-content" />
       
       {/* Header */}
       <LinearGradient
         colors={['#4F46E5', '#6366F1']}
-        style={styles.header}
+        style={[styles.header, { paddingTop: insets.top + 12 }]}
       >
         <View style={styles.headerTop}>
           {/* Back Button */}

@@ -7,6 +7,7 @@ import {
   StatusBar,
   ScrollView,
   Modal,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -16,7 +17,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 export default function TradeSubscriptionScreen() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { completePendingSignUp } = useAuth();
   const [selectedAddons, setSelectedAddons] = useState<string[]>([]);
   const [adminUsers, setAdminUsers] = useState(1);
   const [employeeUsers, setEmployeeUsers] = useState(0);
@@ -46,10 +47,14 @@ export default function TradeSubscriptionScreen() {
     }
   };
 
-  const handlePaymentComplete = () => {
+  const handlePaymentComplete = async () => {
     setShowPaymentModal(false);
-    login();
-    router.replace('/(tabs)/home');
+    try {
+      await completePendingSignUp({ accountType: 'trade', role: 'owner' });
+      router.replace('/(tabs)/home');
+    } catch (error) {
+      Alert.alert('Account Setup Failed', error instanceof Error ? error.message : 'Unable to finish account setup.');
+    }
   };
 
   const calculateTotal = () => {
@@ -158,7 +163,7 @@ export default function TradeSubscriptionScreen() {
 
         {/* What's Included in Admin Plan Section */}
         <View style={styles.featuresSection}>
-          <Text style={styles.sectionTitle}>What's included in the Admin plan</Text>
+          <Text style={styles.sectionTitle}>{"What's included in the Admin plan"}</Text>
           
           <View style={styles.featureItem}>
             <Ionicons name="cloud-upload" size={20} color="#3B82F6" />

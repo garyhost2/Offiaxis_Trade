@@ -9,7 +9,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import GalleryImageViewer from '../components/modals/GalleryImageViewer';
-import { 
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
   getPortfolioById, 
   updatePhotoInPortfolio,
   deletePhotoFromPortfolio,
@@ -27,6 +28,7 @@ const MAX_SELECTION = 20;
 const MAX_UPLOAD = 10;
 
 export default function PortfolioPhotosPage() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const params = useLocalSearchParams();
   // Accept both 'id' and 'portfolioId' parameters for compatibility
@@ -372,11 +374,11 @@ export default function PortfolioPhotosPage() {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
       <StatusBar barStyle="light-content" />
       
       {/* Header - Blue Metallic Theme */}
-      <LinearGradient colors={['#1E3A8A', '#3B82F6']} style={styles.header}>
+      <LinearGradient colors={['#1E3A8A', '#3B82F6']} style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <View style={styles.headerTop}>
           <TouchableOpacity 
             style={styles.backButton}

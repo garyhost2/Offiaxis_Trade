@@ -6,7 +6,7 @@ const envSchema = z.object({
   FIREBASE_PROJECT_ID: z.string().min(1),
   FIREBASE_CLIENT_EMAIL: z.string().email(),
   FIREBASE_PRIVATE_KEY: z.string().min(1),
-  FIREBASE_WEB_API_KEY: z.string().min(1).optional(),
+  FIREBASE_WEB_API_KEY: z.string().min(1),
   CLOUDINARY_CLOUD_NAME: z.string().min(1),
   CLOUDINARY_API_KEY: z.string().min(1),
   CLOUDINARY_API_SECRET: z.string().min(1),
@@ -14,6 +14,7 @@ const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(3000),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   AI_SERVICE_URL: z.string().url().default('http://localhost:8001'),
+  MAX_UPLOAD_BYTES: z.coerce.number().int().positive().default(10 * 1024 * 1024),
 });
 
 export type AppConfig = z.infer<typeof envSchema>;

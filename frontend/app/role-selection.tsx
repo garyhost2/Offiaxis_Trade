@@ -11,18 +11,26 @@ import {
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function RoleSelectionScreen() {
   const router = useRouter();
+  const { pendingSignUp, setPendingSignUp } = useAuth();
   const [selectedRole, setSelectedRole] = useState<'gc' | 'trade' | null>(null);
 
   const handleGCOrPM = () => {
     setSelectedRole('gc');
+    if (pendingSignUp) {
+      setPendingSignUp({ ...pendingSignUp, accountType: 'gc', role: 'owner' });
+    }
     router.push('/subscription-plans');
   };
 
   const handleTrade = () => {
     setSelectedRole('trade');
+    if (pendingSignUp) {
+      setPendingSignUp({ ...pendingSignUp, accountType: 'trade', role: 'owner' });
+    }
     router.push('/trade-subscription');
   };
 

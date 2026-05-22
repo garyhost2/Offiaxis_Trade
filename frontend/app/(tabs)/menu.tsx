@@ -1,355 +1,407 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, StatusBar } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+﻿import React from 'react';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  StatusBar,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import Svg, { Path, Circle } from 'react-native-svg';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAuth } from '../../contexts/AuthContext';
+import { colors } from '../../shared/theme';
+
+// ─── Menu item definition ────────────────────────────────────────────────────
+
+type MenuItem = {
+  id: string;
+  label: string;
+  description: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  iconColor: string;
+  iconBg: string;
+  route?: string;
+  disabled?: boolean;
+  badge?: string;
+};
+
+type MenuSection = {
+  title: string;
+  items: MenuItem[];
+};
+
+const MENU_SECTIONS: MenuSection[] = [
+  {
+    title: 'Operations',
+    items: [
+      {
+        id: 'schedule',
+        label: 'Schedules',
+        description: 'View and manage job timelines',
+        icon: 'calendar-outline',
+        iconColor: '#2563EB',
+        iconBg: '#DBEAFE',
+        route: '/schedule',
+      },
+      {
+        id: 'inventory',
+        label: 'Inventory',
+        description: 'Materials, tools and stock levels',
+        icon: 'cube-outline',
+        iconColor: '#D97706',
+        iconBg: '#FEF3C7',
+        route: '/inventory',
+      },
+      {
+        id: 'site-notes-ai',
+        label: 'Site Notes AI',
+        description: 'AI-powered job documentation',
+        icon: 'bulb-outline',
+        iconColor: '#0284C7',
+        iconBg: '#E0F2FE',
+        route: '/site-notes-ai',
+      },
+      {
+        id: 'knowledge-center',
+        label: 'Knowledge Center',
+        description: 'Training videos and templates',
+        icon: 'book-outline',
+        iconColor: '#7C3AED',
+        iconBg: '#EDE9FE',
+        route: '/knowledge-center',
+      },
+    ],
+  },
+  {
+    title: 'Financials',
+    items: [
+      {
+        id: 'receipts',
+        label: 'Receipts',
+        description: 'All project receipts and expenses',
+        icon: 'receipt-outline',
+        iconColor: '#D97706',
+        iconBg: '#FEF3C7',
+        route: '/receipts',
+      },
+      {
+        id: 'e-contracts',
+        label: 'E-Contracts',
+        description: 'Digital document signing',
+        icon: 'document-text-outline',
+        iconColor: '#16A34A',
+        iconBg: '#DCFCE7',
+        route: '/e-contracts',
+      },
+    ],
+  },
+  {
+    title: 'Team',
+    items: [
+      {
+        id: 'spaces',
+        label: 'OffiAxis Spaces',
+        description: 'Team chat and file workspaces',
+        icon: 'chatbubbles-outline',
+        iconColor: '#2563EB',
+        iconBg: '#DBEAFE',
+        disabled: true,
+        badge: 'Soon',
+      },
+      {
+        id: 'users',
+        label: 'Users and Roles',
+        description: 'Manage team access and permissions',
+        icon: 'people-outline',
+        iconColor: '#4B5563',
+        iconBg: '#F3F4F6',
+        disabled: true,
+        badge: 'Soon',
+      },
+    ],
+  },
+  {
+    title: 'Support',
+    items: [
+      {
+        id: 'help',
+        label: 'Help and Support',
+        description: 'Documentation and help center',
+        icon: 'help-circle-outline',
+        iconColor: '#4B5563',
+        iconBg: '#F3F4F6',
+      },
+      {
+        id: 'about',
+        label: 'About OffiAxis',
+        description: 'Version info and legal',
+        icon: 'information-circle-outline',
+        iconColor: '#4B5563',
+        iconBg: '#F3F4F6',
+      },
+    ],
+  },
+];
+
+// ─── Component ───────────────────────────────────────────────────────────────
 
 export default function MenuScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const { signOut } = useAuth();
+
+  const handleItemPress = (item: MenuItem) => {
+    if (item.disabled || !item.route) return;
+    router.push(item.route as any);
+  };
 
   return (
-    <View style={styles.container}>
+    <View style={styles.root}>
       <StatusBar barStyle="light-content" />
-      
-      {/* Header */}
-      <LinearGradient
-        colors={['#4f46e5', '#6366f1']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 0 }}
-        style={styles.header}
-      >
-        <Text style={styles.headerTitle}>Menu</Text>
-        
-        <View style={styles.headerButtons}>
-          {/* Settings */}
-          <TouchableOpacity 
-            style={styles.headerButton}
-            onPress={() => router.push('/settings')}
-          >
-            <Svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-              <Path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-              <Path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-            </Svg>
-          </TouchableOpacity>
 
-          {/* Logout */}
-          <TouchableOpacity style={styles.logoutButton}>
-            <Svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-              <Path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-            </Svg>
+      {/* Header */}
+      <View style={[styles.header, { paddingTop: insets.top + 12 }]}>
+        <View>
+          <Text style={styles.headerEyebrow}>OFFIAXIS</Text>
+          <Text style={styles.headerTitle}>Quick Access</Text>
+        </View>
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            style={styles.headerIconBtn}
+            onPress={() => router.push('/settings')}
+            accessibilityRole="button"
+            accessibilityLabel="Settings"
+          >
+            <Ionicons name="settings-outline" size={22} color={colors.brand.text} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.headerIconBtn}
+            onPress={() => signOut()}
+            accessibilityRole="button"
+            accessibilityLabel="Sign out"
+          >
+            <Ionicons name="log-out-outline" size={22} color={colors.brand.text} />
           </TouchableOpacity>
         </View>
-      </LinearGradient>
+      </View>
 
       {/* Content */}
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.grid}>
-          {/* OffiAxis Spaces */}
-          <TouchableOpacity style={styles.menuCard} activeOpacity={0.7}>
-            <LinearGradient
-              colors={['#4f46e5', '#6366f1']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.iconContainer}
-            >
-              <Svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-                <Path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </Svg>
-            </LinearGradient>
-            <Text style={styles.menuTitle}>OffiAxis Spaces</Text>
-            <Text style={styles.menuDescription}>Workspaces for chat, files, teams</Text>
-          </TouchableOpacity>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: Math.max(insets.bottom + 80, 100) },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
+        {MENU_SECTIONS.map((section) => (
+          <View key={section.title} style={styles.section}>
+            <Text style={styles.sectionTitle}>{section.title.toUpperCase()}</Text>
+            <View style={styles.sectionCard}>
+              {section.items.map((item, idx) => {
+                const rowContent = (
+                  <>
+                    <View
+                      style={[
+                        styles.iconWrap,
+                        { backgroundColor: item.disabled ? '#F3F4F6' : item.iconBg },
+                      ]}
+                    >
+                      <Ionicons
+                        name={item.icon}
+                        size={22}
+                        color={item.disabled ? '#9CA3AF' : item.iconColor}
+                      />
+                    </View>
 
-          {/* Users & Roles */}
-          <TouchableOpacity style={styles.menuCard} activeOpacity={0.7}>
-            <LinearGradient
-              colors={['#4f46e5', '#6366f1']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.iconContainer}
-            >
-              <Svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-                <Path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-              </Svg>
-            </LinearGradient>
-            <Text style={styles.menuTitle}>Users & Roles</Text>
-            <Text style={styles.menuDescription}>Manage roles and permissions</Text>
-          </TouchableOpacity>
+                    <View style={styles.rowText}>
+                      <Text
+                        style={[styles.rowLabel, item.disabled && styles.rowLabelDisabled]}
+                      >
+                        {item.label}
+                      </Text>
+                      <Text
+                        style={[styles.rowDesc, item.disabled && styles.rowDescDisabled]}
+                        numberOfLines={1}
+                      >
+                        {item.description}
+                      </Text>
+                    </View>
 
-          {/* Schedules */}
-          <TouchableOpacity 
-            style={styles.menuCard} 
-            activeOpacity={0.7}
-            onPress={() => router.push('/schedule')}
-          >
-            <LinearGradient
-              colors={['#4f46e5', '#6366f1']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.iconContainer}
-            >
-              <Svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-                <Path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </Svg>
-            </LinearGradient>
-            <Text style={styles.menuTitle}>Schedules</Text>
-            <Text style={styles.menuDescription}>View and edit team schedules</Text>
-          </TouchableOpacity>
+                    {item.badge ? (
+                      <View style={styles.badge}>
+                        <Text style={styles.badgeText}>{item.badge}</Text>
+                      </View>
+                    ) : item.route ? (
+                      <Ionicons name="chevron-forward" size={18} color={colors.text.muted} />
+                    ) : null}
+                  </>
+                );
 
-          {/* Inventory */}
-          <TouchableOpacity 
-            style={styles.menuCard} 
-            activeOpacity={0.7}
-            onPress={() => router.push('/inventory')}
-          >
-            <LinearGradient
-              colors={['#f59e0b', '#f97316']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.iconContainer}
-            >
-              <Svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-                <Path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-              </Svg>
-            </LinearGradient>
-            <Text style={styles.menuTitle}>Inventory</Text>
-            <Text style={styles.menuDescription}>Products, tools & stock tracking</Text>
-          </TouchableOpacity>
+                return (
+                  <React.Fragment key={item.id}>
+                    {item.disabled ? (
+                      <View
+                        style={[styles.menuRow, styles.menuRowDisabled]}
+                        accessible={true}
+                        accessibilityLabel={`${item.label}. Coming soon. ${item.description}`}
+                        accessibilityState={{ disabled: true }}
+                      >
+                        {rowContent}
+                      </View>
+                    ) : (
+                      <TouchableOpacity
+                        style={styles.menuRow}
+                        onPress={() => handleItemPress(item)}
+                        activeOpacity={0.65}
+                        accessibilityRole="button"
+                        accessibilityLabel={item.label}
+                        accessibilityHint={item.description}
+                      >
+                        {rowContent}
+                      </TouchableOpacity>
+                    )}
 
-          {/* Receipts */}
-          <TouchableOpacity 
-            style={styles.menuCard} 
-            activeOpacity={0.7}
-            onPress={() => router.push('/receipts')}
-          >
-            <LinearGradient
-              colors={['#eab308', '#ca8a04']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.iconContainer}
-            >
-              <Svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-                <Path d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" />
-              </Svg>
-            </LinearGradient>
-            <Text style={styles.menuTitle}>Receipts</Text>
-            <Text style={styles.menuDescription}>View all receipts across projects</Text>
-          </TouchableOpacity>
-
-          {/* Knowledge Center */}
-          <TouchableOpacity 
-            style={styles.menuCard} 
-            activeOpacity={0.7}
-            onPress={() => router.push('/knowledge-center')}
-          >
-            <LinearGradient
-              colors={['#7c3aed', '#a855f7']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.iconContainer}
-            >
-              <Svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-                <Path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-              </Svg>
-            </LinearGradient>
-            <Text style={styles.menuTitle}>Knowledge Center</Text>
-            <Text style={styles.menuDescription}>Training videos & templates</Text>
-          </TouchableOpacity>
-
-          {/* Site Notes AI */}
-          <TouchableOpacity 
-            style={styles.menuCard} 
-            activeOpacity={0.7}
-            onPress={() => router.push('/site-notes-ai')}
-          >
-            <LinearGradient
-              colors={['#0ea5e9', '#06b6d4']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.iconContainer}
-            >
-              <Svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-                <Path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-              </Svg>
-            </LinearGradient>
-            <Text style={styles.menuTitle}>Site Notes AI</Text>
-            <Text style={styles.menuDescription}>AI-powered job documentation</Text>
-          </TouchableOpacity>
-
-          {/* E-Contracts */}
-          <TouchableOpacity 
-            style={styles.menuCard} 
-            activeOpacity={0.7}
-            onPress={() => router.push('/e-contracts')}
-          >
-            <LinearGradient
-              colors={['#10b981', '#059669']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.iconContainer}
-            >
-              <Svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-                <Path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                <Path d="M15 3v5a1 1 0 001 1h5" />
-              </Svg>
-            </LinearGradient>
-            <Text style={styles.menuTitle}>E-Contracts</Text>
-            <Text style={styles.menuDescription}>Electronic document signing</Text>
-          </TouchableOpacity>
-
-          {/* Help & Support */}
-          <TouchableOpacity style={styles.menuCard} activeOpacity={0.7}>
-            <LinearGradient
-              colors={['#4f46e5', '#6366f1']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.iconContainer}
-            >
-              <Svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-                <Path d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </Svg>
-            </LinearGradient>
-            <Text style={styles.menuTitle}>Help & Support</Text>
-            <Text style={styles.menuDescription}>Access help center</Text>
-          </TouchableOpacity>
-
-          {/* About OffiAxis */}
-          <TouchableOpacity style={styles.menuCard} activeOpacity={0.7}>
-            <LinearGradient
-              colors={['#4f46e5', '#6366f1']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={styles.iconContainer}
-            >
-              <Svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-                <Path d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </Svg>
-            </LinearGradient>
-            <Text style={styles.menuTitle}>About OffiAxis</Text>
-            <Text style={styles.menuDescription}>Version info, terms</Text>
-          </TouchableOpacity>
-
-          {/* More Features (Disabled) */}
-          <View style={styles.menuCardDisabled}>
-            <View style={styles.iconContainerDisabled}>
-              <Svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2">
-                <Path d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-              </Svg>
+                    {idx < section.items.length - 1 && <View style={styles.divider} />}
+                  </React.Fragment>
+                );
+              })}
             </View>
-            <Text style={styles.menuTitleDisabled}>More Features</Text>
-            <Text style={styles.menuDescriptionDisabled}>Coming soon</Text>
           </View>
-        </View>
-
-        {/* Bottom spacing */}
-        <View style={{ height: 100 }} />
+        ))}
       </ScrollView>
     </View>
   );
 }
 
+// ─── Styles ──────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.surface.bg,
   },
   header: {
-    paddingTop: 44,
-    paddingBottom: 16,
+    backgroundColor: colors.brand.bg,
     paddingHorizontal: 20,
+    paddingBottom: 16,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-end',
     justifyContent: 'space-between',
   },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#ffffff',
+  headerEyebrow: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.accent.textOnDark,
+    letterSpacing: 1.5,
+    marginBottom: 2,
   },
-  headerButtons: {
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: colors.brand.text,
+    letterSpacing: -0.5,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingBottom: 2,
+  },
+  headerIconBtn: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 999,
+  },
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingHorizontal: 16,
+    paddingTop: 20,
+  },
+  section: {
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.text.muted,
+    letterSpacing: 1.5,
+    marginBottom: 8,
+    paddingHorizontal: 4,
+  },
+  sectionCard: {
+    backgroundColor: colors.surface.card,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.border.default,
+    overflow: 'hidden',
+    shadowColor: '#0E1016',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.07,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  menuRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    minHeight: 60,
     gap: 12,
   },
-  headerButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logoutButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  content: {
-    flex: 1,
-    paddingHorizontal: 16,
-    paddingTop: 24,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 16,
-  },
-  menuCard: {
-    width: '47%',
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#e2e8f0',
-    backgroundColor: '#ffffff',
-  },
-  iconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 12,
-  },
-  menuTitle: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: '#0f172a',
-    marginBottom: 4,
-  },
-  menuDescription: {
-    fontSize: 12,
-    color: '#64748b',
-    lineHeight: 16,
-  },
-  menuCardDisabled: {
-    width: '47%',
-    padding: 16,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: '#f1f5f9',
-    backgroundColor: '#f8fafc',
+  menuRowDisabled: {
     opacity: 0.5,
   },
-  iconContainerDisabled: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
+  divider: {
+    height: 1,
+    backgroundColor: colors.border.subtle,
+    marginLeft: 72,
+  },
+  iconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
-    backgroundColor: '#cbd5e1',
+    flexShrink: 0,
   },
-  menuTitleDisabled: {
+  rowText: {
+    flex: 1,
+    gap: 2,
+  },
+  rowLabel: {
     fontSize: 15,
-    fontWeight: 'bold',
-    color: '#64748b',
-    marginBottom: 4,
+    fontWeight: '600',
+    color: colors.text.primary,
   },
-  menuDescriptionDisabled: {
-    fontSize: 12,
-    color: '#94a3b8',
-    lineHeight: 16,
+  rowLabelDisabled: {
+    color: colors.text.muted,
+  },
+  rowDesc: {
+    fontSize: 13,
+    color: colors.text.secondary,
+    lineHeight: 18,
+  },
+  rowDescDisabled: {
+    color: colors.text.muted,
+  },
+  badge: {
+    backgroundColor: colors.surface.bg,
+    borderRadius: 999,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderWidth: 1,
+    borderColor: colors.border.default,
+  },
+  badgeText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: colors.text.muted,
+    letterSpacing: 0.5,
   },
 });

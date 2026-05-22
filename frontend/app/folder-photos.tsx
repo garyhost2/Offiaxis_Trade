@@ -9,7 +9,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import GalleryImageViewer from '../components/modals/GalleryImageViewer';
-import { 
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
   getProjectFolderPhotos, 
   addPhotosToProjectFolder, 
   updatePhotoInProjectFolder,
@@ -47,6 +48,7 @@ const FOLDER_OPTIONS = [
 ];
 
 export default function FolderPhotosPage() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const params = useLocalSearchParams();
   const projectId = params.projectId as string;
@@ -413,11 +415,11 @@ export default function FolderPhotosPage() {
   const gradientColors = getFolderColor();
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
       <StatusBar barStyle="light-content" />
       
       {/* Header */}
-      <LinearGradient colors={gradientColors} style={styles.header}>
+      <LinearGradient colors={gradientColors} style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <View style={styles.headerTop}>
           <TouchableOpacity 
             style={styles.backButton}

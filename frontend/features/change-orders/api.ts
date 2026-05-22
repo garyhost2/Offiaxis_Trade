@@ -48,7 +48,7 @@ const changeOrdersApi = baseApi.injectEndpoints({
       async onQueryStarted({ id, body }, { dispatch, queryFulfilled }) {
         // Optimistic update for status toggle
         const patchResult = dispatch(
-          baseApi.util.updateQueryData('listChangeOrders', {}, (draft) => {
+          changeOrdersApi.util.updateQueryData('listChangeOrders', {}, (draft) => {
             const item = draft.data.find((co) => co._id === id);
             if (item && body.status) {
               item.status = body.status;

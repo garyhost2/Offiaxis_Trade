@@ -9,27 +9,41 @@ import {
   Platform,
   ScrollView,
   StatusBar,
+  Alert,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../contexts/AuthContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function EmailLoginScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { login } = useAuth();
-  const [email, setEmail] = useState('Yefry@OffiAxis.com');
-  const [password, setPassword] = useState('OffiAxis2025!');
+  const { signIn, isLoading } = useAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [focusedField, setFocusedField] = useState<'email' | 'password' | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSignIn = () => {
-    // Mock login
-    login();
-    router.replace('/(tabs)/home');
+  const handleSignIn = async () => {
+    setError(null);
+    if (!email.trim() || !password) {
+      setError('Enter your email and password to continue.');
+      return;
+    }
+
+    try {
+      await signIn(email.trim(), password);
+      router.replace('/(tabs)/home');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unable to sign in. Check your credentials and try again.');
+    }
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
       
       <KeyboardAvoidingView
@@ -45,9 +59,9 @@ export default function EmailLoginScreen() {
             colors={['#8B5CF6', '#3B82F6']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
-            style={styles.header}
+            style={[styles.header, { paddingTop: insets.top + 20 }]}
           >
-            <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+            <TouchableOpacity style={styles.backButton} onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Go back">
               <Ionicons name="arrow-back" size={28} color="#FFFFFF" />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Sign In</Text>
@@ -56,19 +70,32 @@ export default function EmailLoginScreen() {
 
           {/* Form Content */}
           <View style={styles.formContainer}>
+            {/* Inline error */}
+            {error && (
+              <View style={styles.errorBanner} accessibilityLiveRegion="polite" accessibilityRole="alert">
+                <Ionicons name="alert-circle-outline" size={16} color="#DC2626" />
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            )}
+
             {/* Email Address */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Email Address</Text>
-              <View style={styles.inputContainer}>
-                <Ionicons name="mail-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
+              <View style={[styles.inputContainer, focusedField === 'email' && styles.inputContainerFocused]}>
+                <Ionicons name="mail-outline" size={20} color={focusedField === 'email' ? '#D97706' : '#9CA3AF'} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="your.email@offiaxis.com"
                   placeholderTextColor="#C7C7CD"
                   value={email}
-                  onChangeText={setEmail}
+                  onChangeText={(t) => { setEmail(t); setError(null); }}
+                  onFocus={() => setFocusedField('email')}
+                  onBlur={() => setFocusedField(null)}
                   keyboardType="email-address"
                   autoCapitalize="none"
+                  accessibilityLabel="Email address"
+                  textContentType="emailAddress"
+                  autoComplete="email"
                 />
               </View>
             </View>
@@ -76,20 +103,26 @@ export default function EmailLoginScreen() {
             {/* Password */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Password</Text>
-              <View style={styles.inputContainer}>
-                <Ionicons name="lock-closed-outline" size={20} color="#9CA3AF" style={styles.inputIcon} />
+              <View style={[styles.inputContainer, focusedField === 'password' && styles.inputContainerFocused]}>
+                <Ionicons name="lock-closed-outline" size={20} color={focusedField === 'password' ? '#D97706' : '#9CA3AF'} style={styles.inputIcon} />
                 <TextInput
                   style={styles.input}
                   placeholder="Enter your password"
                   placeholderTextColor="#C7C7CD"
                   value={password}
-                  onChangeText={setPassword}
+                  onChangeText={(t) => { setPassword(t); setError(null); }}
+                  onFocus={() => setFocusedField('password')}
+                  onBlur={() => setFocusedField(null)}
                   secureTextEntry={!showPassword}
                   autoCapitalize="none"
+                  accessibilityLabel="Password"
+                  textContentType="password"
                 />
                 <TouchableOpacity
                   style={styles.eyeIcon}
                   onPress={() => setShowPassword(!showPassword)}
+                  accessibilityRole="button"
+                  accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
                 >
                   <Ionicons
                     name={showPassword ? 'eye-off-outline' : 'eye-outline'}
@@ -102,9 +135,13 @@ export default function EmailLoginScreen() {
 
             {/* Sign In Button */}
             <TouchableOpacity
-              style={styles.signInButton}
+              style={[styles.signInButton, isLoading && styles.signInButtonDisabled]}
               onPress={handleSignIn}
               activeOpacity={0.8}
+              disabled={isLoading}
+              accessibilityRole="button"
+              accessibilityLabel={isLoading ? 'Signing in, please wait' : 'Sign in'}
+              accessibilityState={{ disabled: isLoading }}
             >
               <LinearGradient
                 colors={['#8B5CF6', '#3B82F6']}
@@ -112,12 +149,12 @@ export default function EmailLoginScreen() {
                 end={{ x: 1, y: 0 }}
                 style={styles.signInGradient}
               >
-                <Text style={styles.signInButtonText}>Sign In</Text>
+                <Text style={styles.signInButtonText}>{isLoading ? 'Signing In...' : 'Sign In'}</Text>
               </LinearGradient>
             </TouchableOpacity>
 
             {/* Forgot Password */}
-            <TouchableOpacity style={styles.forgotPasswordButton}>
+            <TouchableOpacity style={styles.forgotPasswordButton} accessibilityRole="button" accessibilityLabel="Forgot password">
               <Text style={styles.forgotPasswordText}>Forgot your password?</Text>
             </TouchableOpacity>
           </View>
@@ -189,6 +226,32 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     height: 56,
   },
+  inputContainerFocused: {
+    borderColor: '#D97706',
+    shadowColor: '#D97706',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.18,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  errorBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#FEF2F2',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginBottom: 20,
+  },
+  errorText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#DC2626',
+    lineHeight: 18,
+  },
   inputIcon: {
     marginRight: 12,
   },
@@ -210,6 +273,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 5,
+  },
+  signInButtonDisabled: {
+    opacity: 0.7,
   },
   signInGradient: {
     paddingVertical: 18,

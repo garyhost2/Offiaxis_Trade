@@ -4,8 +4,28 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
+type ProjectStatus = 'To be scheduled' | 'Rough-In' | 'Inspection' | 'Final Trim' | 'Completed';
+
+type CompanyProject = {
+  id: number;
+  name: string;
+  street: string;
+  city: string;
+  phone: string;
+  permit: string;
+  status: ProjectStatus;
+  initials: string;
+};
+
+type Company = {
+  id: number;
+  name: string;
+  initials: string;
+  projects: CompanyProject[];
+};
+
 // Sample data with companies assigned
-const COMPANIES_DATA = [
+const COMPANIES_DATA: Company[] = [
   {
     id: 1,
     name: 'Boulder Contractor',
@@ -59,16 +79,16 @@ export default function ProjectsByCompanyScreen() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [showIndex, setShowIndex] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(null);
+  const [activeIndex, setActiveIndex] = useState<string | null>(null);
   const [magnifierPos, setMagnifierPos] = useState(0);
-  const [expandedCompanies, setExpandedCompanies] = useState({});
+  const [expandedCompanies, setExpandedCompanies] = useState<Record<number, boolean>>({});
   const [showFilterDropdown, setShowFilterDropdown] = useState(false);
   const [selectedFilter, setSelectedFilter] = useState('All');
 
-  const scrollRef = useRef(null);
-  const hideTimeoutRef = useRef(null);
-  const sectionRefs = useRef({});
-  const letterRefs = useRef({});
+  const scrollRef = useRef<ScrollView | null>(null);
+  const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sectionRefs = useRef<Record<string, number>>({});
+  const letterRefs = useRef<Record<string, number>>({});
 
   const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
   const statusOptions = ['To be scheduled', 'Rough-In', 'Inspection', 'Final Trim', 'Completed'];
@@ -105,7 +125,7 @@ export default function ProjectsByCompanyScreen() {
   const totalProjects = filteredCompanies.reduce((sum, company) => sum + company.projects.length, 0);
 
   // Group companies by first letter
-  const groupedCompanies = filteredCompanies.reduce((acc, company) => {
+  const groupedCompanies = filteredCompanies.reduce<Record<string, Company[]>>((acc, company) => {
     const firstLetter = company.name.charAt(0).toUpperCase();
     if (!acc[firstLetter]) {
       acc[firstLetter] = [];
@@ -116,7 +136,7 @@ export default function ProjectsByCompanyScreen() {
 
   const availableLetters = Object.keys(groupedCompanies).sort();
 
-  const toggleCompany = (companyId) => {
+  const toggleCompany = (companyId: number) => {
     setExpandedCompanies(prev => ({
       ...prev,
       [companyId]: !prev[companyId]
@@ -132,14 +152,14 @@ export default function ProjectsByCompanyScreen() {
     }, 1200);
   };
 
-  const scrollToLetter = (letter) => {
+  const scrollToLetter = (letter: string) => {
     const yOffset = sectionRefs.current[letter];
     if (yOffset !== undefined && scrollRef.current) {
       scrollRef.current.scrollTo({ y: yOffset, animated: true });
     }
   };
 
-  const handleIndexTouch = (letter) => {
+  const handleIndexTouch = (letter: string) => {
     if (!availableLetters.includes(letter)) return;
     
     setActiveIndex(letter);
@@ -158,7 +178,7 @@ export default function ProjectsByCompanyScreen() {
     }, 1200);
   };
 
-  const getStatusStyle = (status) => {
+  const getStatusStyle = (status: string) => {
     switch (status) {
       case 'To be scheduled':
         return { backgroundColor: '#FEF3C7', borderColor: '#FDE047', color: '#92400E' };

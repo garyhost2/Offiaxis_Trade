@@ -44,7 +44,7 @@ const trackerApi = baseApi.injectEndpoints({
       async onQueryStarted(_, { dispatch, queryFulfilled }) {
         // Optimistic update: add a placeholder session
         const patchResult = dispatch(
-          baseApi.util.updateQueryData('listSessions', {}, (draft) => {
+          trackerApi.util.updateQueryData('listSessions', {}, (draft) => {
             draft.data.unshift({
               _id: 'optimistic-' + Date.now(),
               orgId: '',

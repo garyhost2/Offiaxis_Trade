@@ -147,8 +147,8 @@ export default function TimeTrackerCommon() {
   const [isTranscribing, setIsTranscribing] = useState(false);
   const [transcriptWords, setTranscriptWords] = useState<string[]>([]);
   const [highlightedWordIndex, setHighlightedWordIndex] = useState(-1);
-  const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const playbackIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const recordingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const playbackIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const mockTranscriptText = `General walk\n\n• Completed foundation work on section A\n• Electrical wiring 80% done\n• Plumbing inspection passed\n• Need to order more materials for next week\n• Team meeting scheduled for tomorrow at 9 AM\n\nNotes: Weather conditions were favorable today. All safety protocols followed.`;
 
   // Manual Timesheet Entry state
@@ -675,7 +675,7 @@ export default function TimeTrackerCommon() {
       time: formatDisplayTime(currentTime),
       content: noteContent,
       photos: [...capturedPhotos],
-      audioUri: audioUri,
+      audioUri: audioUri || undefined,
       transcript: transcript
     };
     
@@ -703,7 +703,7 @@ export default function TimeTrackerCommon() {
       time: formatDisplayTime(currentTime),
       content: noteContent,
       photos: [...capturedPhotos],
-      audioUri: audioUri,
+      audioUri: audioUri || undefined,
       transcript: transcript
     };
     
@@ -1086,7 +1086,7 @@ export default function TimeTrackerCommon() {
         <LinearGradient colors={['#6A5AE0', '#34d399']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.summaryGradientBorder}>
           <View style={styles.summaryCard}>
             <View style={styles.summaryHeader}>
-              <Text style={styles.summaryTitle}>Today's Summary</Text>
+              <Text style={styles.summaryTitle}>{"Today's Summary"}</Text>
               <Text style={styles.summaryDate}>Oct 29</Text>
             </View>
             <View style={styles.summaryGrid}>
@@ -1219,7 +1219,7 @@ export default function TimeTrackerCommon() {
             {/* Today's Hours Summary */}
             <View style={styles.todayHoursSummary}>
               <View style={styles.todayHoursLeft}>
-                <Text style={styles.todayHoursLabel}>Today's Total</Text>
+                <Text style={styles.todayHoursLabel}>{"Today's Total"}</Text>
                 <Text style={styles.todayHoursValue}>{getTotalHoursForDate(new Date()).toFixed(1)}h</Text>
               </View>
               <View style={styles.todayHoursRight}>
@@ -1237,7 +1237,7 @@ export default function TimeTrackerCommon() {
                   <Path d="M12 6v6l4 2" />
                 </Svg>
                 <Text style={styles.emptyTimesheetText}>No time entries yet</Text>
-                <Text style={styles.emptyTimesheetSubtext}>Tap "Add Entry" to create your first timesheet entry</Text>
+                <Text style={styles.emptyTimesheetSubtext}>{'Tap "Add Entry" to create your first timesheet entry'}</Text>
               </View>
             ) : (
               manualTimeEntries.map((entry) => (
@@ -1395,7 +1395,7 @@ export default function TimeTrackerCommon() {
                             <Svg width="16" height="16" viewBox="0 0 24 24" fill="#6A5AE0"><Path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z" /><Path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z" /></Svg>
                             <Text style={styles.noteAudioLabel}>Audio Recording</Text>
                           </View>
-                          <TouchableOpacity style={styles.noteAudioPlayer} onPress={() => playNoteAudio(note.id, note.audioUri)} activeOpacity={0.7}>
+                          <TouchableOpacity style={styles.noteAudioPlayer} onPress={() => { if (note.audioUri) playNoteAudio(note.id, note.audioUri); }} activeOpacity={0.7}>
                             <View style={[styles.noteAudioIcon, playingNoteId === note.id && styles.noteAudioIconPlaying]}><Svg width="18" height="18" viewBox="0 0 24 24" fill={playingNoteId === note.id ? "#ffffff" : "#6A5AE0"}>{playingNoteId === note.id ? <Path d="M6 4h4v16H6V4zm8 0h4v16h-4V4z" /> : <Path d="M8 5v14l11-7z" />}</Svg></View>
                             <View style={styles.noteAudioWaveform}>{[...Array(20)].map((_, i) => <View key={i} style={[styles.noteWaveBar, { height: 4 + Math.sin(i * 0.5) * 10 + 6, opacity: playingNoteId === note.id ? 1 : 0.7 }]} />)}</View>
                             <Text style={styles.noteAudioPlayText}>{playingNoteId === note.id ? 'Playing...' : 'Tap to play'}</Text>

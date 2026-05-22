@@ -7,7 +7,8 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useFocusEffect } from 'expo-router';
-import { 
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
   getAllMaterials, 
   getMaterialById,
   createMaterial,
@@ -39,6 +40,7 @@ const getCategoryIcon = (category: string): string => {
 };
 
 export default function MaterialsPage() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const [materials, setMaterials] = useState<MaterialProduct[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -185,11 +187,11 @@ export default function MaterialsPage() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
       <StatusBar barStyle="light-content" />
       
       {/* Header */}
-      <LinearGradient colors={['#7C3AED', '#A855F7']} style={styles.header}>
+      <LinearGradient colors={['#7C3AED', '#A855F7']} style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <View style={styles.headerTop}>
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={24} color="#FFFFFF" />

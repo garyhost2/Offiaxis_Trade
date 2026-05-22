@@ -86,11 +86,11 @@ export default function EContractsScreen() {
           </View>
           
           <Text style={styles.comingSoonDescription}>
-            We're currently building this feature using secure, legally compliant signing technology.
+            {"We're currently building this feature using secure, legally compliant signing technology."}
           </Text>
           
           <View style={styles.featuresList}>
-            <Text style={styles.featuresTitle}>When released, you'll be able to:</Text>
+            <Text style={styles.featuresTitle}>{"When released, you'll be able to:"}</Text>
             
             <View style={styles.featureItem}>
               <View style={styles.featureIconContainer}>

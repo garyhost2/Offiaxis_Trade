@@ -3,13 +3,10 @@ import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Modal,
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
 import * as WebBrowser from 'expo-web-browser';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { LinearGradient } from 'expo-linear-gradient';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import Constants from 'expo-constants';
-
-const BACKEND_URL = Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL || process.env.EXPO_PUBLIC_BACKEND_URL;
 
 interface ChangeOrder {
   id: string;
@@ -82,7 +79,7 @@ const STATUS_CONFIG = {
     bg: '#F1F5F9',
     gradientColors: ['#94A3B8', '#64748B'] // Light gray to gray
   }
-};
+} as const;
 
 const TYPE_CONFIG = {
   'Invoice': { emoji: '📄', color: '#10B981', bg: '#D1FAE5' },

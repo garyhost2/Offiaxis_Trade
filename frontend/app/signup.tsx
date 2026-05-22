@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -11,20 +11,59 @@ import {
   StatusBar,
   Image,
   Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../contexts/AuthContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as WebBrowser from 'expo-web-browser';
+import * as Google from 'expo-auth-session/providers/google';
+
+WebBrowser.maybeCompleteAuthSession();
 
 export default function SignupScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { login } = useAuth();
+  const { setPendingSignUp, signInWithGoogle } = useAuth();
   
-  const [name, setName] = useState('Yefry Soto');
-  const [email, setEmail] = useState('Yefry@OffiAxis.com');
-  const [password, setPassword] = useState('OffiAxis2025!');
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    clientId: process.env.EXPO_PUBLIC_GOOGLE_EXPO_CLIENT_ID,
+    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
+    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+    scopes: ['openid', 'profile', 'email'],
+  });
+
+  useEffect(() => {
+    if (response?.type === 'success') {
+      const params = response.params as Record<string, string>;
+      const idToken = params.id_token ?? response.authentication?.idToken;
+      const accessToken = params.access_token ?? response.authentication?.accessToken;
+
+      if (!idToken && !accessToken) {
+        Alert.alert('Google Sign Up Failed', 'No Google token was returned.');
+        return;
+      }
+
+      setGoogleLoading(true);
+      signInWithGoogle(idToken, accessToken)
+        .then(() => router.replace('/(tabs)/home'))
+        .catch((err: Error) => {
+          Alert.alert('Google Sign Up Failed', err.message ?? 'Something went wrong.');
+        })
+        .finally(() => setGoogleLoading(false));
+    } else if (response?.type === 'error') {
+      Alert.alert('Google Sign Up', 'Sign up was cancelled or failed. Please try again.');
+    }
+  }, [response, router, signInWithGoogle]);
 
   const handleContinue = () => {
     // Validate password minimum 10 characters
@@ -38,14 +77,26 @@ export default function SignupScreen() {
       return;
     }
 
-    // Navigate to role selection
+    setPendingSignUp({
+      displayName: name.trim(),
+      email: email.trim(),
+      password,
+      role: 'owner',
+    });
+
     router.push('/role-selection');
   };
 
   const handleGoogleSignup = () => {
-    // Mock Google signup
-    login();
-    router.replace('/(tabs)/home');
+    if (!process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID) {
+      Alert.alert(
+        'Google Not Configured',
+        'Missing EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID. Add Google client IDs to your frontend environment file.'
+      );
+      return;
+    }
+
+    void promptAsync();
   };
 
   const handleLoginRedirect = () => {
@@ -53,7 +104,7 @@ export default function SignupScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
       <StatusBar barStyle="dark-content" backgroundColor="transparent" translucent />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -64,7 +115,7 @@ export default function SignupScreen() {
           showsVerticalScrollIndicator={false}
         >
           {/* Back Button */}
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <TouchableOpacity style={styles.backButton} onPress={() => router.back()} accessibilityRole="button" accessibilityLabel="Go back">
             <Ionicons name="arrow-back" size={24} color="#1F2937" />
           </TouchableOpacity>
 
@@ -81,6 +132,8 @@ export default function SignupScreen() {
               value={name}
               onChangeText={setName}
               autoCapitalize="words"
+              accessibilityLabel="Full name"
+              textContentType="name"
             />
           </View>
 
@@ -95,6 +148,9 @@ export default function SignupScreen() {
               onChangeText={setEmail}
               keyboardType="email-address"
               autoCapitalize="none"
+              accessibilityLabel="Email address"
+              textContentType="emailAddress"
+              autoComplete="email"
             />
           </View>
 
@@ -110,10 +166,14 @@ export default function SignupScreen() {
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
+                accessibilityLabel="Password"
+                textContentType="newPassword"
               />
               <TouchableOpacity
                 style={styles.eyeIcon}
                 onPress={() => setShowPassword(!showPassword)}
+                accessibilityRole="button"
+                accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
               >
                 <Ionicons
                   name={showPassword ? 'eye-off-outline' : 'eye-outline'}
@@ -130,6 +190,8 @@ export default function SignupScreen() {
             style={styles.continueButton}
             onPress={handleContinue}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="Continue to next step"
           >
             <LinearGradient
               colors={['#A78BFA', '#60A5FA']}
@@ -144,7 +206,7 @@ export default function SignupScreen() {
           {/* Login Link */}
           <View style={styles.loginLinkContainer}>
             <Text style={styles.loginText}>Already have an account? </Text>
-            <TouchableOpacity onPress={handleLoginRedirect}>
+            <TouchableOpacity onPress={handleLoginRedirect} accessibilityRole="button" accessibilityLabel="Log in to existing account">
               <Text style={styles.loginLink}>Log in</Text>
             </TouchableOpacity>
           </View>
@@ -158,21 +220,30 @@ export default function SignupScreen() {
 
           {/* Google Signup Button */}
           <TouchableOpacity
-            style={styles.googleButton}
+            style={[styles.googleButton, (googleLoading || !request) && styles.googleButtonDisabled]}
             onPress={handleGoogleSignup}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="Continue with Google"
+            disabled={googleLoading || !request}
           >
-            <Image
-              source={require('../assets/google-g-logo.png')}
-              style={styles.googleLogo}
-              resizeMode="contain"
-            />
-            <Text style={styles.googleButtonText}>Continue with Google</Text>
+            {googleLoading ? (
+              <ActivityIndicator size="small" color="#4285F4" />
+            ) : (
+              <Image
+                source={require('../assets/google-g-logo.png')}
+                style={styles.googleLogo}
+                resizeMode="contain"
+              />
+            )}
+            <Text style={styles.googleButtonText}>
+              {googleLoading ? 'Signing in with Google...' : 'Continue with Google'}
+            </Text>
           </TouchableOpacity>
 
           {/* Terms */}
           <Text style={styles.termsText}>
-            By tapping "Continue", you agree to our{'\n'}
+            {'By tapping "Continue", you agree to our'}{'\n'}
             <Text style={styles.termsLink}>Privacy Policy</Text>
             {' & '}
             <Text style={styles.termsLink}>Terms of Service</Text>
@@ -314,6 +385,9 @@ const styles = StyleSheet.create({
     borderColor: '#dee2e6',
     gap: 10,
     marginBottom: 24,
+  },
+  googleButtonDisabled: {
+    opacity: 0.7,
   },
   googleLogo: {
     width: 24,

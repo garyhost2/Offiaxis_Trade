@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -9,27 +9,77 @@ import {
   ScrollView,
   StatusBar,
   Image,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useAuth } from '../contexts/AuthContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
+import * as Google from 'expo-auth-session/providers/google';
+import * as WebBrowser from 'expo-web-browser';
+import { isDevAuthEnabled, useAuth } from '../contexts/AuthContext';
+
+WebBrowser.maybeCompleteAuthSession();
 
 export default function LoginScreen() {
   const router = useRouter();
-  const { login } = useAuth();
+  const { signInWithGoogle, devAdminLogin } = useAuth();
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const [authNotice, setAuthNotice] = useState<string | null>(null);
+
+  const [request, response, promptAsync] = Google.useAuthRequest({
+    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+    scopes: ['openid', 'profile', 'email'],
+  });
+
+  useEffect(() => {
+    if (response?.type === 'success') {
+      const idToken =
+        (response.params as Record<string, string>).id_token ??
+        response.authentication?.idToken;
+      const accessToken =
+        (response.params as Record<string, string>).access_token ??
+        response.authentication?.accessToken;
+
+      setGoogleLoading(true);
+      signInWithGoogle(idToken, accessToken)
+        .then(() => router.replace('/(tabs)/home'))
+        .catch((err: Error) =>
+          Alert.alert('Google Sign In Failed', err.message ?? 'Something went wrong.')
+        )
+        .finally(() => setGoogleLoading(false));
+    } else if (response?.type === 'error') {
+      Alert.alert('Google Sign In', 'Sign in was cancelled or failed. Please try again.');
+    }
+  }, [response, router, signInWithGoogle]);
 
   const handleEmailLogin = () => {
     router.push('/email-login');
   };
 
   const handleGoogleLogin = () => {
-    login();
-    router.push('/(tabs)/home');
+    if (!request) {
+      setAuthNotice('Google sign-in is not ready yet. Check the web client configuration and try again.');
+      return;
+    }
+    void promptAsync();
   };
 
   const handleCreateAccount = () => {
     router.push('/signup');
+  };
+
+  const handleForgotPassword = () => {
+    setAuthNotice('Password reset is not available in-app yet. Contact your workspace admin for access.');
+  };
+
+  const handleNeedHelp = () => {
+    setAuthNotice('In-app support is not available yet. Contact support@offiaxis.com for help.');
+  };
+
+  const handleDevAdminLogin = async () => {
+    await devAdminLogin();
+    router.replace('/(tabs)/home');
   };
 
   return (
@@ -64,6 +114,9 @@ export default function LoginScreen() {
             style={styles.emailLoginButton}
             onPress={handleEmailLogin}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="Log in with Email"
+            testID="login-email-button"
           >
             <LinearGradient
               colors={['#8B5CF6', '#3B82F6']}
@@ -81,6 +134,9 @@ export default function LoginScreen() {
             style={styles.createAccountButton}
             onPress={handleCreateAccount}
             activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityLabel="Create New Account"
+            testID="create-account-button"
           >
             <Ionicons name="person-add-outline" size={24} color="#1F2937" />
             <Text style={styles.createAccountText}>Create New Account</Text>
@@ -95,27 +151,55 @@ export default function LoginScreen() {
 
           {/* Google Login Button */}
           <TouchableOpacity
-            style={styles.googleButton}
+            style={[styles.googleButton, (googleLoading || !request) && styles.googleButtonDisabled]}
             onPress={handleGoogleLogin}
             activeOpacity={0.8}
+            disabled={googleLoading || !request}
+            accessibilityRole="button"
+            accessibilityLabel="Continue with Google"
+            accessibilityState={{ disabled: googleLoading || !request, busy: googleLoading }}
+            testID="google-login-button"
           >
-            <Image
-              source={require('../assets/google-g-logo.png')}
-              style={styles.googleLogo}
-              resizeMode="contain"
-            />
-            <Text style={styles.googleButtonText}>Continue with Google</Text>
+            {googleLoading ? (
+              <ActivityIndicator size="small" color="#4285F4" />
+            ) : (
+              <Image
+                source={require('../assets/google-g-logo.png')}
+                style={styles.googleLogo}
+                resizeMode="contain"
+              />
+            )}
+            <Text style={styles.googleButtonText}>
+              {googleLoading ? 'Signing in...' : 'Continue with Google'}
+            </Text>
           </TouchableOpacity>
 
           {/* Footer Links */}
           <View style={styles.footerLinks}>
-            <TouchableOpacity>
+            <TouchableOpacity
+              onPress={handleForgotPassword}
+              accessibilityRole="link"
+              accessibilityLabel="Forgot Password?"
+              testID="forgot-password-link"
+            >
               <Text style={styles.linkText}>Forgot Password?</Text>
             </TouchableOpacity>
-            <TouchableOpacity>
+            <TouchableOpacity
+              onPress={handleNeedHelp}
+              accessibilityRole="link"
+              accessibilityLabel="Need Help?"
+              testID="need-help-link"
+            >
               <Text style={styles.linkText}>Need Help?</Text>
             </TouchableOpacity>
           </View>
+
+          {authNotice && (
+            <View style={styles.authNotice} accessibilityRole="alert" testID="auth-notice">
+              <Ionicons name="information-circle-outline" size={18} color="#1D4ED8" />
+              <Text style={styles.authNoticeText}>{authNotice}</Text>
+            </View>
+          )}
 
           {/* Terms */}
           <Text style={styles.termsText}>
@@ -124,6 +208,19 @@ export default function LoginScreen() {
             {' • '}
             <Text style={styles.linkTextSmall}>Privacy Policy</Text>
           </Text>
+
+          {isDevAuthEnabled && (
+            <TouchableOpacity
+              style={styles.devBypassButton}
+              onPress={() => { void handleDevAdminLogin(); }}
+              activeOpacity={0.75}
+              accessibilityRole="button"
+              accessibilityLabel="DEV - Enter as Admin"
+              testID="dev-admin-login-button"
+            >
+              <Text style={styles.devBypassText}>DEV - Enter as Admin</Text>
+            </TouchableOpacity>
+          )}
         </ScrollView>
       </KeyboardAvoidingView>
     </View>
@@ -253,6 +350,9 @@ const styles = StyleSheet.create({
     gap: 10,
     marginBottom: 24,
   },
+  googleButtonDisabled: {
+    opacity: 0.6,
+  },
   googleLogo: {
     width: 24,
     height: 24,
@@ -267,6 +367,24 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 24,
     paddingHorizontal: 8,
+  },
+  authNotice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#DBEAFE',
+    borderColor: '#93C5FD',
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 12,
+    gap: 8,
+    marginBottom: 20,
+  },
+  authNoticeText: {
+    flex: 1,
+    color: '#1D4ED8',
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '500',
   },
   linkText: {
     color: '#8B5CF6',
@@ -284,5 +402,21 @@ const styles = StyleSheet.create({
   linkTextSmall: {
     color: '#adb5bd',
     fontWeight: '400',
+  },
+  devBypassButton: {
+    marginTop: 20,
+    alignSelf: 'center',
+    backgroundColor: '#1a1a2e',
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#FF4500',
+  },
+  devBypassText: {
+    color: '#FF4500',
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
 });

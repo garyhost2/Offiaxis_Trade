@@ -5,6 +5,10 @@ const { FileStore } = require('metro-cache');
 
 const config = getDefaultConfig(__dirname);
 
+// Allow Metro to resolve .cjs files (needed for @reduxjs/toolkit)
+config.resolver.sourceExts = [...config.resolver.sourceExts, 'cjs'];
+config.resolver.unstable_enablePackageExports = false;
+
 // Use a stable on-disk store (shared across web/android)
 const root = process.env.METRO_CACHE_ROOT || path.join(__dirname, '.metro-cache');
 config.cacheStores = [

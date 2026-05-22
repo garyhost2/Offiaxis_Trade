@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Calendar } from 'react-native-calendars';
 import { getAllProjects } from '../utils/projectsData';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Convert project to calendar event
 const convertProjectToEvent = (project: any) => {
@@ -69,6 +70,7 @@ const convertProjectToEvent = (project: any) => {
 };
 
 export default function SchedulePage() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const [activeView, setActiveView] = useState('month');
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -106,7 +108,7 @@ export default function SchedulePage() {
   const [newEventNotes, setNewEventNotes] = useState('');
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showEventCalendar, setShowEventCalendar] = useState(false);
-  const [activeEventDateField, setActiveEventDateField] = useState(null); // 'from' or 'to'
+  const [activeEventDateField, setActiveEventDateField] = useState<'from' | 'to' | null>(null);
   
   // Get all projects for the selector
   const allProjects = getAllProjects();
@@ -540,6 +542,7 @@ export default function SchedulePage() {
         </View>
       );
     });
+    PickerWheel.displayName = 'PickerWheel';
 
     const handleSave = () => {
       // Pass local values directly and don't update parent state
@@ -600,6 +603,7 @@ export default function SchedulePage() {
       </Modal>
     );
   });
+  TimePickerModal.displayName = 'TimePickerModal';
 
   // Day View Component
   const DayView = () => {
@@ -1023,7 +1027,7 @@ export default function SchedulePage() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
       <StatusBar barStyle="light-content" />
 
       {/* Header */}
@@ -1031,7 +1035,7 @@ export default function SchedulePage() {
         colors={['#1E40AF', '#3B82F6', '#8B5CF6']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
-        style={styles.header}
+        style={[styles.header, { paddingTop: insets.top + 12 }]}
       >
         <View style={styles.headerContent}>
           <TouchableOpacity 

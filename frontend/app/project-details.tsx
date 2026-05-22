@@ -9,9 +9,9 @@ import * as Contacts from 'expo-contacts';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import * as Sharing from 'expo-sharing';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as MediaLibrary from 'expo-media-library';
-import Constants from 'expo-constants';
+import { buildApiUrl, getAuthHeaders } from '../shared/store/baseApi';
 import ChangeOrdersTab from '../components/ChangeOrdersTab';
 import InspectionDetailModal from '../components/InspectionDetailModal';
 import EditPropertyDetailsModal from '../components/modals/EditPropertyDetailsModal';
@@ -20,8 +20,6 @@ import FullScreenImageModal from '../components/modals/FullScreenImageModal';
 import PermitPreviewModal from '../components/modals/PermitPreviewModal';
 import ReceiptsTab from '../components/tabs/ReceiptsTab';
 import PLTab from '../components/tabs/PLTab';
-
-const BACKEND_URL = Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL || process.env.EXPO_PUBLIC_BACKEND_URL;
 
 // Companies data for "By Company" dropdown - matches projects.tsx
 const INITIAL_COMPANIES_DATA = [
@@ -77,6 +75,19 @@ const TABS = [
   { id: 'pl', label: 'P&L' }
 ];
 
+type DraftListItem = {
+  id: string;
+  text: string;
+  [key: string]: any;
+};
+
+type DraftCategory = {
+  id: string;
+  name: string;
+  items: DraftListItem[];
+  [key: string]: any;
+};
+
 export default function ProjectDetailsScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -103,15 +114,15 @@ export default function ProjectDetailsScreen() {
   const [showShareModal, setShowShareModal] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
   const [showContactDeleteWarning, setShowContactDeleteWarning] = useState(false);
-  const [selectedContact, setSelectedContact] = useState(null);
-  const [editedContactData, setEditedContactData] = useState(null);
+  const [selectedContact, setSelectedContact] = useState<any>(null);
+  const [editedContactData, setEditedContactData] = useState<any>(null);
   const [isEditingContact, setIsEditingContact] = useState(false);
   const [isAddingNewContact, setIsAddingNewContact] = useState(false);
   const [isAddingNote, setIsAddingNote] = useState(false);
   const [showCompanyInfoModal, setShowCompanyInfoModal] = useState(false);
   const [selectedCompanyInfo, setSelectedCompanyInfo] = useState<any>(null);
   const [noteText, setNoteText] = useState('');
-  const [project, setProject] = useState(null);
+  const [project, setProject] = useState<any>(null);
   
   // Project Note state
   const [showProjectNoteModal, setShowProjectNoteModal] = useState(false);
@@ -159,7 +170,7 @@ export default function ProjectDetailsScreen() {
   const [showAddTaskModal, setShowAddTaskModal] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
   const [newTaskTitle, setNewTaskTitle] = useState('');
-  const [newTaskCategories, setNewTaskCategories] = useState<any[]>([
+  const [newTaskCategories, setNewTaskCategories] = useState<DraftCategory[]>([
     { id: 'cat-temp-1', name: '', items: [{ id: 'item-temp-1', text: '' }] }
   ]);
 
@@ -172,7 +183,7 @@ export default function ProjectDetailsScreen() {
   const [showAddChecklistModal, setShowAddChecklistModal] = useState(false);
   const [editingChecklistId, setEditingChecklistId] = useState<string | null>(null);
   const [newChecklistTitle, setNewChecklistTitle] = useState('');
-  const [newChecklistCategories, setNewChecklistCategories] = useState<any[]>([
+  const [newChecklistCategories, setNewChecklistCategories] = useState<DraftCategory[]>([
     { id: 'cat-temp-1', name: '', items: [{ id: 'item-temp-1', text: '' }] }
   ]);
   const [selectedChecklist, setSelectedChecklist] = useState<any>(null);
@@ -199,7 +210,8 @@ export default function ProjectDetailsScreen() {
 
   // Fetch project data based on ID from params
   useEffect(() => {
-    const projectId = parseInt(params.id);
+    const projectIdParam = Array.isArray(params.id) ? params.id[0] : params.id;
+    const projectId = parseInt(projectIdParam ?? '', 10);
     const foundProject = getProjectById(projectId);
     
     if (foundProject) {
@@ -342,7 +354,7 @@ export default function ProjectDetailsScreen() {
   // Format address from street and city
   const fullAddress = `${project.street}, ${project.city}`;
 
-  const handleContactClick = (contact) => {
+  const handleContactClick = (contact: any) => {
     setSelectedContact(contact);
     setEditedContactData(contact);
     setNoteText(contact.note || '');
@@ -355,7 +367,7 @@ export default function ProjectDetailsScreen() {
 
   const handleSaveNote = () => {
     const updatedContact = { ...selectedContact, note: noteText };
-    const updatedContacts = (project.otherContacts || []).map(c => 
+    const updatedContacts = (project.otherContacts || []).map((c: any) => 
       c.id === selectedContact.id ? updatedContact : c
     );
     
@@ -389,7 +401,7 @@ export default function ProjectDetailsScreen() {
     if (isAddingNewContact) {
       updatedContacts = [...(project.otherContacts || []), editedContactData];
     } else {
-      updatedContacts = (project.otherContacts || []).map(c => 
+      updatedContacts = (project.otherContacts || []).map((c: any) => 
         c.id === selectedContact.id ? editedContactData : c
       );
     }
@@ -412,7 +424,7 @@ export default function ProjectDetailsScreen() {
 
   const confirmDeleteContact = () => {
     const updatedContacts = (project.otherContacts || []).filter(
-      c => c.id !== selectedContact.id
+      (c: any) => c.id !== selectedContact.id
     );
     
     // Update shared store
@@ -449,7 +461,7 @@ export default function ProjectDetailsScreen() {
 
   const handleSaveCustomerDetails = () => {
     // Find the selected company to get its initials
-    const selectedCompany = companies.find(c => c.name === customerEditData.company);
+    const selectedCompany = companies.find((c: any) => c.name === customerEditData.company);
     
     // Update via shared store
     updateProject(project.id, {
@@ -515,6 +527,8 @@ export default function ProjectDetailsScreen() {
       }
 
       const contact = {
+        contactType: Contacts.ContactTypes.Person,
+        name: project.name,
         [Contacts.Fields.FirstName]: project.name.split(' ')[0],
         [Contacts.Fields.LastName]: project.name.split(' ').slice(1).join(' '),
         [Contacts.Fields.PhoneNumbers]: project.phone ? [{
@@ -670,7 +684,7 @@ export default function ProjectDetailsScreen() {
                       {/* Dropdown Content */}
                       <View style={styles.contactDropdownMenu}>
                         {/* Contact List */}
-                        {(project.otherContacts || []).map(contact => (
+                        {(project.otherContacts || []).map((contact: any) => (
                           <TouchableOpacity
                             key={contact.id}
                             style={styles.contactDropdownItem}
@@ -1286,7 +1300,7 @@ export default function ProjectDetailsScreen() {
                         const fileBase64 = await fetch(file.uri)
                           .then(res => res.blob())
                           .then(blob => {
-                            return new Promise((resolve, reject) => {
+                            return new Promise<string | undefined>((resolve, reject) => {
                               const reader = new FileReader();
                               reader.onloadend = () => {
                                 const base64String = reader.result?.toString().split(',')[1];
@@ -1297,16 +1311,24 @@ export default function ProjectDetailsScreen() {
                             });
                           });
 
+                        if (!fileBase64) {
+                          throw new Error('Could not read permit file');
+                        }
+
                         // Send to backend for AI extraction
-                        const response = await fetch(`${Constants.expoConfig?.extra?.backendUrl}/api/extract-permit`, {
+                        const response = await fetch(buildApiUrl('/api/extract-permit'), {
                           method: 'POST',
-                          headers: {
+                          headers: getAuthHeaders({
                             'Content-Type': 'application/json',
-                          },
+                          }),
                           body: JSON.stringify({
                             imageBase64: fileBase64,
                           }),
                         });
+
+                        if (!response.ok) {
+                          throw new Error(`Extraction failed with status ${response.status}`);
+                        }
                         
                         const data = await response.json();
                         
@@ -1561,7 +1583,7 @@ export default function ProjectDetailsScreen() {
 
                   {project?.tasks && project.tasks.length > 0 ? (
                     <View style={styles.taskList}>
-                      {project.tasks.map((task, taskIndex) => {
+                      {project.tasks.map((task: any, taskIndex: number) => {
                         const isCollapsed = collapsedTasks[task.id] || false;
                     
                     // Calculate progress
@@ -1684,7 +1706,7 @@ export default function ProjectDetailsScreen() {
                               <View style={styles.assignedTeamContainer}>
                                 <Text style={styles.assignedTeamLabel}>Assigned to:</Text>
                                 <View style={styles.assignedTeamList}>
-                                  {task.assignedTeam.map((member, index) => (
+                                  {task.assignedTeam.map((member: any, index: number) => (
                                     <View key={index} style={styles.teamMemberChip}>
                                       <Text style={styles.teamMemberName}>{member}</Text>
                                     </View>
@@ -1694,10 +1716,10 @@ export default function ProjectDetailsScreen() {
                             )}
 
                             {/* Task Categories with Checkboxes */}
-                            {task.categories.map((category, catIndex) => (
+                            {task.categories.map((category: any, catIndex: number) => (
                               <View key={category.id} style={styles.taskCategory}>
                                 <Text style={styles.taskCategoryName}>{category.name}</Text>
-                                {category.items.map((item, itemIndex) => (
+                                {category.items.map((item: any, itemIndex: number) => (
                                   <View key={item.id} style={styles.taskItemContainer}>
                                     <View style={styles.taskItemRow}>
                                       {/* Item Reorder Arrows */}
@@ -1706,11 +1728,11 @@ export default function ProjectDetailsScreen() {
                                           <TouchableOpacity
                                             style={styles.itemReorderButton}
                                             onPress={() => {
-                                              const updatedTasks = project.tasks.map(t => {
+                                              const updatedTasks = project.tasks.map((t: any) => {
                                                 if (t.id === task.id) {
                                                   return {
                                                     ...t,
-                                                    categories: t.categories.map((cat, idx) => {
+                                                    categories: t.categories.map((cat: any, idx: number) => {
                                                       if (idx === catIndex) {
                                                         const newItems = [...cat.items];
                                                         [newItems[itemIndex], newItems[itemIndex - 1]] = [newItems[itemIndex - 1], newItems[itemIndex]];
@@ -1733,11 +1755,11 @@ export default function ProjectDetailsScreen() {
                                           <TouchableOpacity
                                             style={styles.itemReorderButton}
                                             onPress={() => {
-                                              const updatedTasks = project.tasks.map(t => {
+                                              const updatedTasks = project.tasks.map((t: any) => {
                                                 if (t.id === task.id) {
                                                   return {
                                                     ...t,
-                                                    categories: t.categories.map((cat, idx) => {
+                                                    categories: t.categories.map((cat: any, idx: number) => {
                                                       if (idx === catIndex) {
                                                         const newItems = [...cat.items];
                                                         [newItems[itemIndex], newItems[itemIndex + 1]] = [newItems[itemIndex + 1], newItems[itemIndex]];
@@ -1762,15 +1784,15 @@ export default function ProjectDetailsScreen() {
                                         style={styles.taskItem}
                                         onPress={() => {
                                           // Toggle checkbox
-                                          const updatedTasks = project.tasks.map(t => {
+                                          const updatedTasks = project.tasks.map((t: any) => {
                                             if (t.id === task.id) {
                                               return {
                                                 ...t,
-                                                categories: t.categories.map(cat => {
+                                                categories: t.categories.map((cat: any) => {
                                                   if (cat.id === category.id) {
                                                     return {
                                                       ...cat,
-                                                      items: cat.items.map(itm => 
+                                                      items: cat.items.map((itm: any) => 
                                                         itm.id === item.id ? { ...itm, checked: !itm.checked } : itm
                                                       )
                                                     };
@@ -3353,7 +3375,7 @@ export default function ProjectDetailsScreen() {
           // Also update in project data
           const updatedProject = { ...project, inspections: newInspections };
           setProject(updatedProject);
-          updateProject(updatedProject);
+          updateProject(project.id, { inspections: newInspections });
         }}
         statusOptions={inspectionStatusOptions}
         onAddCustomStatus={(status) => {
@@ -4953,50 +4975,6 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     color: '#64748B',
   },
-  contactDropdownMenu: {
-    position: 'absolute',
-    top: 24,
-    left: 0,
-    width: 192,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#E2E8F0',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 50,
-    zIndex: 9999,
-    paddingVertical: 4,
-  },
-  contactDropdownItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  contactDropdownName: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#0F172A',
-  },
-  addContactDropdownButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-    marginTop: 4,
-  },
-  addContactDropdownText: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#4F46E5',
-  },
   indigoEditButton: {
     width: 32,
     height: 32,
@@ -5083,18 +5061,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 4,
     elevation: 3,
-  },
-  callButton: {
-    backgroundColor: '#10B981',
-    shadowColor: '#10B981',
-  },
-  textButton: {
-    backgroundColor: '#3B82F6',
-    shadowColor: '#3B82F6',
-  },
-  emailButton: {
-    backgroundColor: '#8B5CF6',
-    shadowColor: '#8B5CF6',
   },
   actionButtonText: {
     fontSize: 12,
@@ -5370,29 +5336,13 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 24,
   },
-  deleteWarningTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#991B1B',
-    marginBottom: 12,
-  },
   deleteWarningList: {
     gap: 8,
-  },
-  deleteWarningItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
   },
   deleteWarningBullet: {
     fontSize: 16,
     color: '#DC2626',
     marginRight: 8,
-    lineHeight: 20,
-  },
-  deleteWarningText: {
-    flex: 1,
-    fontSize: 14,
-    color: '#7F1D1D',
     lineHeight: 20,
   },
   deleteModalButtons: {
@@ -5412,23 +5362,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#475569',
-  },
-  deleteConfirmButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 10,
-    backgroundColor: '#EF4444',
-    alignItems: 'center',
-    shadowColor: '#EF4444',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  deleteConfirmButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
   },
   // Share Modal Styles
   shareModalOverlay: {

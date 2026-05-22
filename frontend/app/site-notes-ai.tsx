@@ -17,21 +17,23 @@ import {
   FlatList,
   Animated,
   Easing,
+  AccessibilityInfo,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import Constants from 'expo-constants';
 import { getAllProjects } from '../utils/projectsData';
+import { buildApiUrl, getAuthHeaders } from '../shared/store/baseApi';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const { width, height } = Dimensions.get('window');
 
 interface Project {
   id: number;
   name: string;
-  galleryDescription: string;
+  galleryDescription?: string;
   street: string;
   city: string;
   status: string;
@@ -51,6 +53,7 @@ interface ChecklistItem {
   task: string;
   category: string;
   checked: boolean;
+  completed?: boolean;
   linkedPhotos?: string[];
 }
 
@@ -58,6 +61,7 @@ interface MaterialItem {
   id: string;
   name: string;
   quantity: string;
+  unit?: string;
   category: string;
   notes?: string;
   linkedPhotos?: string[];
@@ -101,6 +105,7 @@ type ViewMode = 'capture' | 'results';
 type ResultTab = 'punch' | 'checklist' | 'materials';
 
 export default function SiteNotesAIPage() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   
   // Camera Permission
@@ -119,7 +124,7 @@ export default function SiteNotesAIPage() {
   const [currentVoiceInput, setCurrentVoiceInput] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
-  const recordingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const recordingIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const currentVoiceNoteIdRef = useRef<string | null>(null);
   const sessionPhotosRef = useRef<string[]>([]); // Photos captured during current session
   
@@ -133,6 +138,13 @@ export default function SiteNotesAIPage() {
   const pulseAnim2 = useRef(new Animated.Value(1)).current;
   const pulseAnim3 = useRef(new Animated.Value(1)).current;
   const waveAnim = useRef(new Animated.Value(0)).current;
+  const [reduceMotion, setReduceMotion] = useState(false);
+
+  useEffect(() => {
+    AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion);
+    const sub = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduceMotion);
+    return () => sub.remove();
+  }, []);
   
   // Voice Waveform Animation (8 bars)
   const waveformBars = useRef([
@@ -184,7 +196,7 @@ export default function SiteNotesAIPage() {
 
   // AI Listening Animation Effect
   useEffect(() => {
-    if (isRecording && showFullScreenCamera) {
+    if (isRecording && showFullScreenCamera && !reduceMotion) {
       // Pulse animations for the AI orbs
       const createPulse = (anim: Animated.Value, delay: number) => {
         return Animated.loop(
@@ -274,13 +286,6 @@ export default function SiteNotesAIPage() {
       project.city?.toLowerCase().includes(searchLower)
     );
   });
-
-  // Get API URL
-  const getApiUrl = () => {
-    const backendUrl = Constants.expoConfig?.extra?.EXPO_PUBLIC_BACKEND_URL || '';
-    if (backendUrl) return backendUrl;
-    return '/api';
-  };
 
   // Open Full-Screen Camera with AI Listening
   const handleOpenFullScreenCamera = async () => {
@@ -390,8 +395,6 @@ export default function SiteNotesAIPage() {
     setIsProcessing(true);
 
     try {
-      const apiUrl = getApiUrl();
-      
       // Build project context from selected project
       let projectContextText = '';
       if (selectedProject) {
@@ -405,11 +408,11 @@ export default function SiteNotesAIPage() {
         projectContext: projectContextText || undefined,
       };
 
-      const response = await fetch(`${apiUrl}/site-notes/process`, {
+      const response = await fetch(buildApiUrl('/api/site-notes/process'), {
         method: 'POST',
-        headers: {
+        headers: getAuthHeaders({
           'Content-Type': 'application/json',
-        },
+        }),
         body: JSON.stringify(requestData),
       });
 
@@ -480,7 +483,7 @@ export default function SiteNotesAIPage() {
         const newPhoto: CapturedPhoto = {
           id: `photo-${Date.now()}`,
           uri: result.assets[0].uri,
-          base64: result.assets[0].base64,
+          base64: result.assets[0].base64 ?? undefined,
           capturedAt: new Date(),
           voiceNoteId: isRecording ? currentVoiceNoteIdRef.current || undefined : undefined,
         };
@@ -518,7 +521,7 @@ export default function SiteNotesAIPage() {
         const newPhotos: CapturedPhoto[] = result.assets.map((asset, index) => ({
           id: `photo-${Date.now()}-${index}`,
           uri: asset.uri,
-          base64: asset.base64,
+          base64: asset.base64 ?? undefined,
           capturedAt: new Date(),
         }));
         setPhotos(prev => [...prev, ...newPhotos]);
@@ -1160,11 +1163,11 @@ export default function SiteNotesAIPage() {
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: insets.bottom }]}>
       <StatusBar barStyle="light-content" />
 
       {/* Header */}
-      <LinearGradient colors={['#0EA5E9', '#06B6D4']} style={styles.header}>
+      <LinearGradient colors={['#0EA5E9', '#06B6D4']} style={[styles.header, { paddingTop: insets.top + 12 }]}>
         <View style={styles.headerTop}>
           <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={24} color="#FFFFFF" />

@@ -57,7 +57,16 @@ export const SignInResponseSchema = z.object({
   role: UserRoleSchema.nullable(),
 });
 
+export const GoogleSignInSchema = z.object({
+  idToken: z.string().optional(),
+  accessToken: z.string().optional(),
+}).refine(
+  (data) => Boolean(data.idToken) || Boolean(data.accessToken),
+  { message: 'Either idToken or accessToken is required' }
+);
+
 export type RegisterUserInput = z.infer<typeof RegisterUserSchema>;
 export type UpdateRoleInput = z.infer<typeof UpdateRoleSchema>;
 export type SignUpInput = z.infer<typeof SignUpSchema>;
 export type SignInInput = z.infer<typeof SignInSchema>;
+export type GoogleSignInInput = z.infer<typeof GoogleSignInSchema>;
